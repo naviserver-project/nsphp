@@ -1,0 +1,78 @@
+Naviserver PHP module
+
+To compile PHP as a module for Naviserver, you need:
+
+- installed Naviserver 4.99 or later
+- PHP 5.x or later
+
+It has been tested with Drupal, RoundCube webmail, MailBee webmail, Mambo
+
+
+1) Compiling PHP
+
+  $ cd nsphp
+
+  $ wget http://www.php.net/distributions/php-5.1.4.tar.gz
+
+  $ tar -xzf php-5.1.4.tar.gz
+
+  $ mkdir php-5.1.4/sapi/naviserver
+
+  $ cp nsphp.c config.m4 php.sym php-5.1.4/sapi/naviserver
+
+  $ cd php-5.1.4
+
+  $ ./buildconf --force
+
+  $ ./configure --with-naviserver <other options>
+
+  $ make install
+
+  $ cp libs/libphp5.so /usr/local/ns/bin
+
+
+2) Changing nsd.tcl
+
+  a) Enabling PHP
+
+    Then enable the PHP module:
+
+    ns_section	"ns/server/${server}/modules"
+    ns_param    nsphp		${home}/bin/libphp5.so
+
+  b) New section
+
+    Add a new section to pass options to PHP (required):
+    The 'map' command will cause Naviserver to pass all requests to *.php to
+    the PHP module (can be specified multiple times).  Example:
+
+    ns_section	"ns/server/${server}/module/nsphp"
+    ns_param 	map 		*.php
+    ns_param 	map 		*.php4
+
+
+3) Calling PHP scripts from Tcl
+
+
+  ns_php version
+
+     Return PHP version
+
+  ns_php eval string
+
+     Evaluate PHP expression and return result
+
+  ns_php evalfile filename
+
+     Evaluate spacified PHP file
+
+  ns_php call function 
+
+     Call PHP function and return result
+
+4) Calling Tcl scripts from PHP
+
+
+  ns_eval Tcl_script
+
+     Evaluate Tcl code from PHP script and return result as string
