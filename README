@@ -30,8 +30,17 @@ It has been tested with Drupal, RoundCube webmail, MailBee webmail, Mambo
 
   $ cp libs/libphp5.so /usr/local/ns/bin
 
+2) Alternatively, to build everything just type
 
-2) Changing nsd.tcl
+  $ make build
+
+  and it will download and build libphp5.so and
+  install it. By default it will install it into
+  /usr/local/php and will copy libphp5.so into 
+  /usr/local/ns/bin
+
+
+3) Changing nsd.tcl
 
   a) Enabling PHP
 
