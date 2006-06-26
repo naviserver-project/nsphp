@@ -5,7 +5,8 @@ To compile PHP as a module for Naviserver, you need:
 - installed Naviserver 4.99 or later
 - PHP 5.x or later
 
-It has been tested with Drupal, RoundCube webmail, MailBee webmail, Mambo
+It has been tested with Drupal, RoundCube webmail, MailBee webmail, 
+Mambo, Horder/IMP
 
 
 1) Compiling PHP
@@ -36,7 +37,7 @@ It has been tested with Drupal, RoundCube webmail, MailBee webmail, Mambo
 
   and it will download and build libphp5.so and
   install it. By default it will install it into
-  /usr/local/php and will copy libphp5.so into 
+  /usr/local/php and will copy libphp5.so into
   /usr/local/ns/bin
 
 
@@ -75,13 +76,20 @@ It has been tested with Drupal, RoundCube webmail, MailBee webmail, Mambo
 
      Evaluate spacified PHP file
 
-  ns_php call function 
+  ns_php call function
 
      Call PHP function and return result
 
 4) Calling Tcl scripts from PHP
 
 
-  ns_eval Tcl_script
+  ns_eval(Tcl_script);
 
      Evaluate Tcl code from PHP script and return result as string
+
+  ns_log(severity,string);
+
+     Put string in the server log, severity is one of
+     'Notice', 'Warning', 'Error', 'Debug', 'Fatal'
+
+

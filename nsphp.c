@@ -39,12 +39,14 @@ int Ns_ModuleVersion = 1;
 
 PHP_FUNCTION(getallheaders);
 PHP_FUNCTION(ns_eval);
+PHP_FUNCTION(ns_log);
 
 static void php_info_naviserver(ZEND_MODULE_INFO_FUNC_ARGS);
 
 static zend_function_entry naviserver_functions[] = {
     PHP_FE(getallheaders, NULL)
     PHP_FE(ns_eval,       NULL)
+    PHP_FE(ns_log,        NULL)
     {NULL, NULL, NULL}
 };
 
@@ -93,6 +95,23 @@ PHP_FUNCTION(ns_eval)
         result = Tcl_GetStringResult(interp);
     }
     RETURN_STRING((char*)result, 1);
+}
+
+PHP_FUNCTION(ns_log)
+{
+    zval **mode, **str;
+    int severity, args = ZEND_NUM_ARGS();
+
+    if (args < 2 || zend_get_parameters_ex(args, &mode, &str) == FAILURE) {
+        WRONG_PARAM_COUNT;
+    }
+    convert_to_string_ex(mode);
+    convert_to_string_ex(str);
+    severity = !strcasecmp((*mode)->value.str.val, "Error") ? Error :
+               !strcasecmp((*mode)->value.str.val, "Warning") ? Warning :
+               !strcasecmp((*mode)->value.str.val, "Debug") ? Debug :
+               !strcasecmp((*mode)->value.str.val, "Fatal") ? Fatal : Notice;
+    Ns_Log(severity, "%s", (*str)->value.str.val);
 }
 
 static int php_ns_startup(sapi_module_struct * sapi_module)
