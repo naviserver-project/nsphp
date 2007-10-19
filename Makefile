@@ -2,7 +2,7 @@ ifndef NAVISERVER
     NAVISERVER  = /usr/local/ns
 endif
 
-php_ver 	= php-5.2.0
+php_ver 	= php-5.2.4
 php_dir 	= /usr/local/php
 
 clean:
