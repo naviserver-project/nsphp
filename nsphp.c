@@ -308,6 +308,7 @@ static void php_ns_sapi_register_variables(zval * track_vars_array TSRMLS_DC)
 {
     int i;
     Ns_DString ds;
+    char *p, *key, *value, c;
     ns_context *ctx = SG(server_context);
 
     if (!ctx->conn) {
@@ -316,9 +317,8 @@ static void php_ns_sapi_register_variables(zval * track_vars_array TSRMLS_DC)
 
     Ns_DStringInit(&ds);
     for (i = 0; i < Ns_SetSize(ctx->conn->headers); i++) {
-        char *key = Ns_SetKey(ctx->conn->headers, i);
-        char *value = Ns_SetValue(ctx->conn->headers, i);
-        char *p, c;
+        key = Ns_SetKey(ctx->conn->headers, i);
+        value = Ns_SetValue(ctx->conn->headers, i);
 
         Ns_DStringSetLength(&ds, 0);
         Ns_DStringPrintf(&ds, "HTTP_%s", key);
@@ -343,7 +343,16 @@ static void php_ns_sapi_register_variables(zval * track_vars_array TSRMLS_DC)
     ADD_STRING("REQUEST_METHOD", ctx->conn->request->method);
 
     if (Ns_ConnHost(ctx->conn)) {
-        ADD_STRING("SERVER_NAME", Ns_ConnHost(ctx->conn));
+        Ns_DStringSetLength(&ds, 0);
+        value = Ns_ConnLocationAppend(ctx->conn, &ds);
+        // Strip protocol and port from the name
+        if ((p = strstr(value, "://"))) {
+            value = p + 3;
+            if ((p = strchr(value, ':'))) {
+                *p = 0;
+            }
+        }
+        ADD_STRING("SERVER_NAME", value);
     }
     if (ctx->conn->request->query) {
         ADD_STRING("QUERY_STRING", ctx->conn->request->query);

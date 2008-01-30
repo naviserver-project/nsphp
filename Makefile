@@ -2,11 +2,8 @@ ifndef NAVISERVER
     NAVISERVER  = /usr/local/ns
 endif
 
-php_ver 	= php-5.2.4
+php_ver 	= php-5.2.5
 php_dir 	= /usr/local/php
-
-clean:
-	-rm -rf *.so *~ *.o *.lo .libs php-5*
 
 include  $(NAVISERVER)/include/Makefile.module
 
@@ -29,5 +26,8 @@ build:
 	--with-png-dir=/usr --with-ttf --with-imap-ssl --with-gettext)
 	make -C $(php_ver) install
 	cp -f $(php_ver)/libs/libphp5.so $(NAVISERVER)/bin
+
+clean:
+	-rm -rf *.so *~ *.o *.lo .libs php-5*
 
 

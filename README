@@ -13,15 +13,15 @@ Mambo, Horder/IMP
 
   $ cd nsphp
 
-  $ wget http://www.php.net/distributions/php-5.1.4.tar.gz
+  $ wget http://www.php.net/distributions/php-5.2.5.tar.gz
 
-  $ tar -xzf php-5.1.4.tar.gz
+  $ tar -xzf php-5.2.5.tar.gz
 
-  $ mkdir php-5.1.4/sapi/naviserver
+  $ mkdir php-5.2.5/sapi/naviserver
 
-  $ cp nsphp.c config.m4 php.sym php-5.1.4/sapi/naviserver
+  $ cp nsphp.c config.m4 php.sym php-5.2.5/sapi/naviserver
 
-  $ cd php-5.1.4
+  $ cd php-5.2.5
 
   $ ./buildconf --force
 
