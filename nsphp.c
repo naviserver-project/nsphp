@@ -43,7 +43,8 @@
 #error Naviserver module is only useable in thread-safe mode
 #endif
 
-#define ADD_STRING(name,buf) php_register_variable(name, buf, track_vars_array TSRMLS_CC)
+#define ADD_STRING(name,buf)   php_register_variable(name, buf, track_vars_array TSRMLS_CC)
+#define STRDUP(s)              (s != NULL ? estrdup(s) : NULL) 
 
 typedef struct {
    char *buffer;
@@ -148,8 +149,6 @@ static int php_ns_startup(sapi_module_struct * sapi_module)
 
 static int php_ns_sapi_ub_write(const char *str, uint str_length TSRMLS_DC)
 {
-    int n;
-    uint sent = 0;
     ns_context *ctx = SG(server_context);
 
     if (!ctx->conn) {
@@ -160,16 +159,10 @@ static int php_ns_sapi_ub_write(const char *str, uint str_length TSRMLS_DC)
         return str_length;
     }
 
-    while (str_length > 0) {
-        n = Ns_ConnWrite(ctx->conn, (void *) str, str_length);
-        if (n == -1) {
-            php_handle_aborted_connection();
-        }
-        str += n;
-        sent += n;
-        str_length -= n;
+    if (Ns_ConnWriteData(ctx->conn, (void *) str, str_length, 0) != NS_OK) {
+        php_handle_aborted_connection();
     }
-    return sent;
+    return str_length;
 }
 
 /*
@@ -445,8 +438,7 @@ static int php_ns_request_handler(void *context, Ns_Conn * conn)
 
     Ns_DStringInit(&ds);
     Ns_UrlToFile(&ds, Ns_ConnServer(conn), conn->request->url);
-    SG(request_info).path_translated = ns_strdup(Ns_DStringValue(&ds));
-    Ns_DStringFree(&ds);
+    SG(request_info).path_translated = ds.string;
 
     SG(request_info).query_string = conn->request->query;
     SG(request_info).request_uri = conn->request->url;
@@ -454,8 +446,8 @@ static int php_ns_request_handler(void *context, Ns_Conn * conn)
     SG(request_info).proto_num = conn->request->version > 1.0 ? 1001 : 1000;
     SG(request_info).content_length = Ns_ConnContentLength(conn);
     SG(request_info).content_type = Ns_SetIGet(conn->headers, "Content-Type");
-    SG(request_info).auth_user = ns_strcopy(Ns_ConnAuthUser(conn));
-    SG(request_info).auth_password = ns_strcopy(Ns_ConnAuthPasswd(conn));
+    SG(request_info).auth_user = STRDUP(Ns_ConnAuthUser(conn));
+    SG(request_info).auth_password = STRDUP(Ns_ConnAuthPasswd(conn));
     SG(sapi_headers).http_response_code = 200;
 
     SG(server_context) = &ctx;
@@ -476,9 +468,7 @@ static int php_ns_request_handler(void *context, Ns_Conn * conn)
        status = NS_ERROR;
     } zend_end_try();
 
-    ns_free(SG(request_info).path_translated);
-    ns_free(SG(request_info).auth_user);
-    ns_free(SG(request_info).auth_password);
+    Ns_DStringFree(&ds);
     return status;
 }
 
