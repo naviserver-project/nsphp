@@ -1,15 +1,14 @@
 Naviserver PHP module
 
-To compile PHP as a module for Naviserver, you need:
+1) To compile PHP as a module for Naviserver, you need:
 
 - installed Naviserver 4.99 or later
 - PHP 5.x or later
 
 It has been tested with Drupal, RoundCube webmail, MailBee webmail, 
-Mambo, Horder/IMP
+Mambo, Horder/IMP, MediaWiki, PmWiki
 
-
-1) Compiling PHP
+2) Compiling PHP
 
   $ cd nsphp
 
@@ -31,7 +30,7 @@ Mambo, Horder/IMP
 
   $ cp libs/libphp5.so /usr/local/ns/bin
 
-2) Alternatively, to build everything just type
+3) Alternatively, to build everything just type
 
   $ make build
 
@@ -41,7 +40,7 @@ Mambo, Horder/IMP
   /usr/local/ns/bin
 
 
-3) Changing nsd.tcl
+4) Changing nsd.tcl
 
   a) Enabling PHP
 
@@ -61,7 +60,7 @@ Mambo, Horder/IMP
     ns_param 	map 		*.php4
 
 
-3) Calling PHP scripts from Tcl
+5) Calling PHP scripts from Tcl
 
 
   ns_php version
@@ -80,16 +79,91 @@ Mambo, Horder/IMP
 
      Call PHP function and return result
 
-4) Calling Tcl scripts from PHP
+  ns_php val varname
 
+     Returns value of the PHP variable
+
+
+6) Calling Tcl scripts from PHP
+
+
+  ns_header name
+
+     Returns HTTP header
 
   ns_eval(Tcl_script);
 
      Evaluate Tcl code from PHP script and return result as string
 
-  ns_log(severity,string);
+  ns_log(severity, string);
 
      Put string in the server log, severity is one of
      'Notice', 'Warning', 'Error', 'Debug', 'Fatal'
+
+  ns_info(name);
+
+     Returns information, name can be one of:
+        address, boottime, builddate, threads,
+        config, home, hostname, locks, log,
+        major, minor, name, nsd, pageroot, patchlevel,
+        pid, platform, tag, uptime, version, winnt
+
+  ns_conn(name);
+
+    Returns info about current connection, name can be one of:
+        authpassword, authuser, close, content, contentlength,
+	copy, driver, encoding, flags,
+	host, id, isconnected, location, method,
+	peeraddr, peerport, port, protocol, query, request,
+        server, sock, start, status, url, urlc, urlencoding,
+        urlv, version,
+
+  ns_headers();
+
+    Returns input headrs as an array
+
+  ns_outputheaders();
+
+    Returns output headers as an array
+
+
+  ns_returnredirect(url);
+
+    Performs HTTP redirection
+
+
+  ns_returndata(status, type, data);
+  ns_returnfile(status, type, file);
+
+    Return data or file contents, status is HTTP status like 200, type
+    is content type like text/html
+
+
+  ns_queryexists name
+
+    Returns 1 if query parameter exists in the request
+
+  ns_queryget name
+
+    Returns value of the query parameter
+
+  ns_querygetall
+
+    Returns all query parameters as an array
+
+  ns_nsvget(array, key);
+  ns_nsvset(array, key, value);
+  ns_nsvincr(array, key, count);
+  ns_nsvappend(array, key, value);
+  ns_nsvexists(array, key)
+  ns_nsv_unset(array, key);
+
+    Interface to NSV arrays of the Naviserver, array is name of the array, all
+    functions except last 2 will create array if it does not exists. Values in NSV arrays
+    can be shared with Tcl and other connections.
+
+
+
+
 
 

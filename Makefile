@@ -5,7 +5,12 @@ endif
 php_ver 	= php-5.2.6
 php_dir 	= /usr/local/php
 
-include  $(NAVISERVER)/include/Makefile.module
+
+all:
+	make -C $(php_ver)
+
+install: all
+	cp $(php_ver)/libs/libphp5.so $(NAVISERVER)/bin
 
 build:
 	rm -rf $(php_ver)

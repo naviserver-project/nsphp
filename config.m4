@@ -18,6 +18,8 @@ if test "$withval" != "no"; then
         PHP_BUILD_THREAD_SAFE
         AC_DEFINE(WITH_NAVISERVER,1,[whether you want Naviserver support])
         PHP_ADD_INCLUDE($NS_PATH/include)
+        PHP_ADD_INCLUDE(../)
+        PHP_ADD_INCLUDE(../../../)
         PHP_SELECT_SAPI(naviserver, shared, nsphp.c)
         INSTALL_IT="\$(SHELL) \$(srcdir)/install-sh -m 0755 $SAPI_SHARED \$(INSTALL_ROOT)$NS_PATH/bin/"
         RESULT=yes
