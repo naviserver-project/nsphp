@@ -152,12 +152,12 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
     Returns all query parameters as an array
 
-  ns_nsvget(array, key);
-  ns_nsvset(array, key, value);
-  ns_nsvincr(array, key, count);
-  ns_nsvappend(array, key, value);
-  ns_nsvexists(array, key)
-  ns_nsv_unset(array, key);
+  nsv_get(array, key);
+  nsv_set(array, key, value);
+  nsv_incr(array, key, count);
+  nsv_append(array, key, value);
+  nsv_exists(array, key)
+  nsv_unset(array, key);
 
     Interface to NSV arrays of the Naviserver, array is name of the array, all
     functions except last 2 will create array if it does not exists. Values in NSV arrays

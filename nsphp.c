@@ -80,12 +80,12 @@ PHP_FUNCTION(ns_returnfile);
 PHP_FUNCTION(ns_queryexists);
 PHP_FUNCTION(ns_queryget);
 PHP_FUNCTION(ns_querygetall);
-PHP_FUNCTION(ns_nsvget);
-PHP_FUNCTION(ns_nsvset);
-PHP_FUNCTION(ns_nsvexists);
-PHP_FUNCTION(ns_nsvincr);
-PHP_FUNCTION(ns_nsvunset);
-PHP_FUNCTION(ns_nsvappend);
+PHP_FUNCTION(nsv_get);
+PHP_FUNCTION(nsv_set);
+PHP_FUNCTION(nsv_exists);
+PHP_FUNCTION(nsv_incr);
+PHP_FUNCTION(nsv_unset);
+PHP_FUNCTION(nsv_append);
 
 PHP_MINIT_FUNCTION(pdo_naviserver);
 PHP_MSHUTDOWN_FUNCTION(pdo_naviserver);
@@ -168,12 +168,12 @@ static zend_function_entry naviserver_functions[] = {
     PHP_FE(ns_queryexists,   NULL)
     PHP_FE(ns_queryget,      NULL)
     PHP_FE(ns_querygetall,   NULL)
-    PHP_FE(ns_nsvget,        NULL)
-    PHP_FE(ns_nsvset,        NULL)
-    PHP_FE(ns_nsvexists,     NULL)
-    PHP_FE(ns_nsvincr,       NULL)
-    PHP_FE(ns_nsvunset,      NULL)
-    PHP_FE(ns_nsvappend,     NULL)
+    PHP_FE(nsv_get,        NULL)
+    PHP_FE(nsv_set,        NULL)
+    PHP_FE(nsv_exists,     NULL)
+    PHP_FE(nsv_incr,       NULL)
+    PHP_FE(nsv_unset,      NULL)
+    PHP_FE(nsv_append,     NULL)
     {NULL, NULL, NULL}
 };
 
@@ -909,7 +909,7 @@ PHP_FUNCTION(ns_querygetall)
     }
 }
 
-PHP_FUNCTION(ns_nsvget)
+PHP_FUNCTION(nsv_get)
 {
     char *aname, *key, *result;
     int alen, klen;
@@ -925,7 +925,7 @@ PHP_FUNCTION(ns_nsvget)
     }
 }
 
-PHP_FUNCTION(ns_nsvset)
+PHP_FUNCTION(nsv_set)
 {
     char *aname, *key, *value;
     int alen, klen, vlen;
@@ -936,7 +936,7 @@ PHP_FUNCTION(ns_nsvset)
     RETURN_LONG(Ns_ConnNsvSet(aname, key, value));
 }
 
-PHP_FUNCTION(ns_nsvexists)
+PHP_FUNCTION(nsv_exists)
 {
     char *aname, *key;
     int alen, klen;
@@ -947,7 +947,7 @@ PHP_FUNCTION(ns_nsvexists)
     RETURN_LONG(Ns_ConnNsvExists(aname, key));
 }
 
-PHP_FUNCTION(ns_nsvincr)
+PHP_FUNCTION(nsv_incr)
 {
     char *aname, *key;
     int alen, klen, count = 1;
@@ -958,7 +958,7 @@ PHP_FUNCTION(ns_nsvincr)
     RETURN_LONG(Ns_ConnNsvIncr( aname, key, count));
 }
 
-PHP_FUNCTION(ns_nsvunset)
+PHP_FUNCTION(nsv_unset)
 {
     char *aname, *key = NULL;
     int alen, klen;
@@ -969,7 +969,7 @@ PHP_FUNCTION(ns_nsvunset)
     RETURN_LONG(Ns_ConnNsvUnset(aname, key));
 }
 
-PHP_FUNCTION(ns_nsvappend)
+PHP_FUNCTION(nsv_append)
 {
     char *aname, *key, *value;
     int alen, klen, vlen;
