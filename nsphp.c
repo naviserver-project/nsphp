@@ -58,9 +58,11 @@ typedef struct {
    size_t data_offset;
 } ns_context;
 
-/* This symbol is used by Naviserver to tell the API version we expect */
-
-int Ns_ModuleVersion = 1;
+typedef struct {
+   Ns_DbHandle *db;
+   Ns_Set *row;
+   char *sql;
+} ns_pdo_handle;
 
 PHP_FUNCTION(ns_eval);
 PHP_FUNCTION(ns_log);
@@ -85,7 +87,69 @@ PHP_FUNCTION(ns_nsvincr);
 PHP_FUNCTION(ns_nsvunset);
 PHP_FUNCTION(ns_nsvappend);
 
-static void php_info_naviserver(ZEND_MODULE_INFO_FUNC_ARGS);
+PHP_MINIT_FUNCTION(pdo_naviserver);
+PHP_MSHUTDOWN_FUNCTION(pdo_naviserver);
+PHP_MINFO_FUNCTION(pdo_naviserver);
+PHP_RSHUTDOWN_FUNCTION(pdo_naviserver);
+
+static Tcl_ObjCmdProc php_ns_tcl_cmd;
+static int php_ns_tcl_init(Tcl_Interp *interp, void *arg);
+static void ThreadArgProc(Tcl_DString *dsPtr, void *proc, void *arg);
+
+static int pdo_naviserver_handle_factory(pdo_dbh_t *dbh, zval *driver_options TSRMLS_DC);
+static int pdo_naviserver_handle_fetch_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, zval *info TSRMLS_DC);
+static int pdo_naviserver_handle_closer(pdo_dbh_t *dbh TSRMLS_DC);
+static int pdo_naviserver_handle_preparer(pdo_dbh_t *dbh, const char *sql, long sql_len, pdo_stmt_t *stmt, zval *driver_options TSRMLS_DC);
+static int pdo_naviserver_handle_quoter(pdo_dbh_t *dbh, const char *unquoted, int unquotedlen, char **quoted, int *quotedlen, enum pdo_param_type paramtype TSRMLS_DC);
+static long pdo_naviserver_handle_doer(pdo_dbh_t *dbh, const char *sql, long sql_len TSRMLS_DC);
+static int pdo_naviserver_stmt_dtor(pdo_stmt_t *stmt TSRMLS_DC);
+static int pdo_naviserver_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC);
+static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt,	enum pdo_fetch_orientation ori, long offset TSRMLS_DC);
+static int pdo_naviserver_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC);
+static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, unsigned long *len, int *caller_frees TSRMLS_DC);
+
+static int php_ns_sapi_ub_write(const char *str, uint str_length TSRMLS_DC);
+static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header, sapi_headers_struct *sapi_headers TSRMLS_DC);
+static int php_ns_sapi_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC);
+static int php_ns_sapi_read_post(char *buf, uint count_bytes TSRMLS_DC);
+static char *php_ns_sapi_read_cookies(TSRMLS_D);
+static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC);
+static void php_ns_sapi_log_message(char *message);
+static void php_ns_sapi_info(ZEND_MODULE_INFO_FUNC_ARGS);
+static int php_ns_sapi_startup(sapi_module_struct * sapi_module);
+static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn);
+
+static sapi_module_struct naviserver_sapi_module = {
+    "naviserver",
+    "Naviserver",
+
+    php_ns_sapi_startup,                      /* startup */
+    php_module_shutdown_wrapper,              /* shutdown */
+
+    NULL,                                     /* activate */
+    NULL,                                     /* deactivate */
+
+    php_ns_sapi_ub_write,                     /* unbuffered write */
+    NULL,                                     /* flush */
+    NULL,                                     /* get uid */
+    NULL,                                     /* getenv */
+
+    php_error,                                /* error handler */
+
+    php_ns_sapi_header_handler,               /* header handler */
+    php_ns_sapi_send_headers,                 /* send headers handler */
+    NULL,                                     /* send header handler */
+
+    php_ns_sapi_read_post,                    /* read POST data */
+    php_ns_sapi_read_cookies,                 /* read Cookies */
+
+    php_ns_sapi_register_variables,
+    php_ns_sapi_log_message,                  /* log message */
+    NULL,                                     /* get request time */
+
+    STANDARD_SAPI_MODULE_PROPERTIES
+};
+
 
 static zend_function_entry naviserver_functions[] = {
     PHP_FE(ns_header,        NULL)
@@ -121,10 +185,224 @@ static zend_module_entry php_naviserver_module = {
     NULL,
     NULL,
     NULL,
-    php_info_naviserver,
+    php_ns_sapi_info,
     NULL,
     STANDARD_MODULE_PROPERTIES
 };
+
+static pdo_driver_t pdo_naviserver_driver = {
+    PDO_DRIVER_HEADER(naviserver),
+    pdo_naviserver_handle_factory
+};
+
+static struct pdo_dbh_methods pdo_naviserver_methods = {
+    pdo_naviserver_handle_closer,
+    pdo_naviserver_handle_preparer,
+    pdo_naviserver_handle_doer,
+    pdo_naviserver_handle_quoter,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,                               /* last insert */
+    pdo_naviserver_handle_fetch_error,  /* fetch error */
+    NULL,                               /* get attr */
+    NULL,                               /* check liveness */
+};
+
+static struct pdo_stmt_methods pdo_naviserver_stmt_methods = {
+    pdo_naviserver_stmt_dtor,
+    pdo_naviserver_stmt_execute,
+    pdo_naviserver_stmt_fetch,
+    pdo_naviserver_stmt_describe,
+    pdo_naviserver_stmt_get_col,
+    NULL,
+    NULL,                           /* set attr */
+    NULL,                           /* get attr */
+    NULL,                           /* meta */
+    NULL,                           /* nextrow */
+    NULL
+};
+
+int Ns_ModuleVersion = 1;
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * Ns_ModuleInit
+ *
+ *      Called by Naviserver once at startup
+ *
+ * Results:
+ *      NS_OK or NS_ERROR
+ *
+ * Side effects:
+ *      This functions allocates basic structures and initializes basic services.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int Ns_ModuleInit(char *server, char *module)
+{
+    int i;
+    char *path;
+    Ns_Set *set;
+
+    tsrm_startup(1, 1, TSRM_ERROR_LEVEL_CORE, NULL);
+    sapi_startup(&naviserver_sapi_module);
+    sapi_module.startup(&naviserver_sapi_module);
+
+    php_pdo_register_driver(&pdo_naviserver_driver);
+
+    // read the configuration
+    path = Ns_ConfigGetPath(server, module, NULL);
+    set = Ns_ConfigGetSection(path);
+
+    for (i = 0; set && i < Ns_SetSize(set); i++) {
+        char *key = Ns_SetKey(set, i);
+        char *value = Ns_SetValue(set, i);
+
+        if (!strcasecmp(key, "map")) {
+            Ns_Log(Notice, "Registering PHP for \"%s\"", value);
+            Ns_RegisterRequest(server, "GET", value, php_ns_sapi_request_handler, NULL, 0, 0);
+            Ns_RegisterRequest(server, "POST", value, php_ns_sapi_request_handler, NULL, 0, 0);
+            Ns_RegisterRequest(server, "HEAD", value, php_ns_sapi_request_handler, NULL, 0, 0);
+        }
+    }
+
+    Ns_TclRegisterTrace(server, php_ns_tcl_init, 0, NS_TCL_TRACE_CREATE);
+
+    Ns_Log(Notice, "nsphp: started %s", PHP_VERSION);
+    return NS_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * PHPObjCmd --
+ *
+ *      Implement the ns_php command.
+ *
+ * Results:
+ *      Standard Tcl result.
+ *
+ * Side effects:
+ *      Depends on command.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int php_ns_tcl_cmd(ClientData arg, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+{
+    zval *name, *val;
+    int status, cmd;
+    ns_context ctx;
+    zend_file_handle file_handle;
+
+    enum {
+        cmdCALL, cmdEVAL, cmdEVALFILE, cmdVAR, cmdVERSION
+    };
+    static CONST char *subcmd[] = {
+        "call", "eval", "evalfile", "var", "version",
+        NULL
+    };
+
+    if (objc < 2) {
+        Tcl_WrongNumArgs(interp, 1, objv, "option ?arg ...?");
+        return TCL_ERROR;
+    }
+    status = Tcl_GetIndexFromObj(interp, objv[1], subcmd, "option", 0, &cmd);
+    if (status != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    TSRMLS_FETCH();
+    SG(server_context) = &ctx;
+    memset(&ctx, 0, sizeof(ctx));
+
+    switch (cmd) {
+    case cmdEVAL:
+       if (objc < 3) {
+           Tcl_WrongNumArgs(interp, 2, objv, "script");
+           status = TCL_ERROR;
+           break;
+       }
+       zend_try {
+         if (php_request_startup(TSRMLS_C) != FAILURE) {
+             zend_eval_string(Tcl_GetString(objv[2]), NULL, "ns:php" TSRMLS_CC);
+             Tcl_AppendResult(interp, ctx.buffer, NULL);
+             php_request_shutdown(NULL);
+         }
+       } zend_end_try();
+       break;
+
+    case cmdEVALFILE:
+       if (objc < 3) {
+           Tcl_WrongNumArgs(interp, 2, objv, "filename");
+           status = TCL_ERROR;
+           break;
+       }
+       memset(&file_handle, 0, sizeof(file_handle));
+       file_handle.type = ZEND_HANDLE_FILENAME;
+       file_handle.filename = Tcl_GetString(objv[2]);
+       if (php_request_startup(TSRMLS_C) != FAILURE) {
+           php_execute_script(&file_handle TSRMLS_CC);
+           Tcl_AppendResult(interp, ctx.buffer, NULL);
+           zend_try {
+             php_request_shutdown(NULL);
+           } zend_end_try();
+       }
+       break;
+
+    case cmdCALL:
+       if (objc < 3) {
+           Tcl_WrongNumArgs(interp, 2, objv, "functionname ...");
+           status = TCL_ERROR;
+           break;
+       }
+       zend_try {
+         if (php_request_startup(TSRMLS_C) != FAILURE) {
+             MAKE_STD_ZVAL(name);
+             ZVAL_STRING(name, Tcl_GetString(objv[2]), 1);
+             call_user_function(CG(function_table), NULL, name, NULL, 0, NULL, 0);
+             Tcl_AppendResult(interp, ctx.buffer, NULL);
+             zval_ptr_dtor(&name);
+             php_request_shutdown(NULL);
+         }
+       } zend_end_try();
+       break;
+
+    case cmdVAR:
+       if (objc < 3) {
+           Tcl_WrongNumArgs(interp, 2, objv, "varname");
+           status = TCL_ERROR;
+           break;
+       }
+       zend_try {
+         if (php_request_startup(TSRMLS_C) != FAILURE) {
+             MAKE_STD_ZVAL(val);
+             zend_eval_string(Tcl_GetString(objv[2]), val, "ns:php" TSRMLS_CC);
+             convert_to_string_ex(&val);
+             Tcl_AppendResult(interp, val->value.str.val, NULL);
+             zval_ptr_dtor(&val);
+             php_request_shutdown(NULL);
+         }
+       } zend_end_try();
+       break;
+
+    case cmdVERSION:
+       Tcl_AppendResult(interp, PHP_VERSION, NULL);
+       break;
+    }
+    ns_free(ctx.buffer);
+    return status;
+}
+
+static int php_ns_tcl_init(Tcl_Interp *interp, void *arg)
+{
+    Tcl_CreateObjCommand(interp, "ns_php", php_ns_tcl_cmd, arg, NULL);
+    return TCL_OK;
+}
 
 static void ThreadArgProc(Tcl_DString *dsPtr, void *proc, void *arg)
 {
@@ -702,14 +980,6 @@ PHP_FUNCTION(ns_nsvappend)
     RETURN_LONG(Ns_ConnNsvAppend(aname, key, value, NULL));
 }
 
-static int php_ns_startup(sapi_module_struct * sapi_module)
-{
-    if (php_module_startup(sapi_module, &php_naviserver_module, 1) == FAILURE) {
-        return FAILURE;
-    } else {
-        return SUCCESS;
-    }
-}
 
 /*
  * php_ns_sapi_ub_write() writes data to the client connection.
@@ -823,7 +1093,7 @@ static void php_ns_sapi_log_message(char *message)
     Ns_Log(Error, "nsphp: %s", message);
 }
 
-static void php_info_naviserver(ZEND_MODULE_INFO_FUNC_ARGS)
+static void php_ns_sapi_info(ZEND_MODULE_INFO_FUNC_ARGS)
 {
     char buf[512];
     int i, uptime = Ns_InfoUptime();
@@ -960,44 +1230,20 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
     Ns_DStringFree(&ds);
 }
 
-/* this structure is static (as in "it does not change") */
-
-static sapi_module_struct naviserver_sapi_module = {
-    "naviserver",
-    "Naviserver",
-
-    php_ns_startup,             /* startup */
-    php_module_shutdown_wrapper,/* shutdown */
-
-    NULL,                       /* activate */
-    NULL,                       /* deactivate */
-
-    php_ns_sapi_ub_write,       /* unbuffered write */
-    NULL,                       /* flush */
-    NULL,                       /* get uid */
-    NULL,                       /* getenv */
-
-    php_error,                  /* error handler */
-
-    php_ns_sapi_header_handler, /* header handler */
-    php_ns_sapi_send_headers,   /* send headers handler */
-    NULL,                       /* send header handler */
-
-    php_ns_sapi_read_post,      /* read POST data */
-    php_ns_sapi_read_cookies,   /* read Cookies */
-
-    php_ns_sapi_register_variables,
-    php_ns_sapi_log_message,    /* Log message */
-    NULL,                       /* Get request time */
-
-    STANDARD_SAPI_MODULE_PROPERTIES
-};
+static int php_ns_sapi_startup(sapi_module_struct * sapi_module)
+{
+    if (php_module_startup(sapi_module, &php_naviserver_module, 1) == FAILURE) {
+        return FAILURE;
+    } else {
+        return SUCCESS;
+    }
+}
 
 /*
  * The php_ns_request_handler() is called per request and handles everything for one request.
  */
 
-static int php_ns_request_handler(void *context, Ns_Conn * conn)
+static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
 {
     Ns_DString ds;
     ns_context ctx;
@@ -1042,263 +1288,149 @@ static int php_ns_request_handler(void *context, Ns_Conn * conn)
     return status;
 }
 
-/*
- *----------------------------------------------------------------------
- *
- * PHPObjCmd --
- *
- *      Implement the ns_php command.
- *
- * Results:
- *      Standard Tcl result.
- *
- * Side effects:
- *      Depends on command.
- *
- *----------------------------------------------------------------------
- */
-
-static int PHPObjCmd(ClientData arg, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int pdo_naviserver_stmt_dtor(pdo_stmt_t *stmt TSRMLS_DC)
 {
-    zval *name, *val;
-    int status, cmd;
-    ns_context ctx;
-    zend_file_handle file_handle;
+    ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
 
-    enum {
-        cmdCALL, cmdEVAL, cmdEVALFILE, cmdVAR, cmdVERSION
-    };
-    static CONST char *subcmd[] = {
-        "call", "eval", "evalfile", "var", "version",
-        NULL
-    };
+    Ns_DbFlush(db->db);
+    Ns_SetTrunc(db->row, 0);
+    Ns_SetTrunc(db->db->row, 0);
+    Ns_DbSetException(db->db, "", "");
+    ns_free(db->sql);
+    db->sql = NULL;
 
-    if (objc < 2) {
-        Tcl_WrongNumArgs(interp, 1, objv, "option ?arg ...?");
-        return TCL_ERROR;
-    }
-    status = Tcl_GetIndexFromObj(interp, objv[1], subcmd, "option", 0, &cmd);
-    if (status != TCL_OK) {
-        return TCL_ERROR;
-    }
-
-    TSRMLS_FETCH();
-    SG(server_context) = &ctx;
-    memset(&ctx, 0, sizeof(ctx));
-
-    switch (cmd) {
-    case cmdEVAL:
-       if (objc < 3) {
-           Tcl_WrongNumArgs(interp, 2, objv, "script");
-           status = TCL_ERROR;
-           break;
-       }
-       zend_try {
-         if (php_request_startup(TSRMLS_C) != FAILURE) {
-             zend_eval_string(Tcl_GetString(objv[2]), NULL, "ns:php" TSRMLS_CC);
-             Tcl_AppendResult(interp, ctx.buffer, NULL);
-             php_request_shutdown(NULL);
-         }
-       } zend_end_try();
-       break;
-
-    case cmdEVALFILE:
-       if (objc < 3) {
-           Tcl_WrongNumArgs(interp, 2, objv, "filename");
-           status = TCL_ERROR;
-           break;
-       }
-       memset(&file_handle, 0, sizeof(file_handle));
-       file_handle.type = ZEND_HANDLE_FILENAME;
-       file_handle.filename = Tcl_GetString(objv[2]);
-       if (php_request_startup(TSRMLS_C) != FAILURE) {
-           php_execute_script(&file_handle TSRMLS_CC);
-           Tcl_AppendResult(interp, ctx.buffer, NULL);
-           zend_try {
-             php_request_shutdown(NULL);
-           } zend_end_try();
-       }
-       break;
-
-    case cmdCALL:
-       if (objc < 3) {
-           Tcl_WrongNumArgs(interp, 2, objv, "functionname ...");
-           status = TCL_ERROR;
-           break;
-       }
-       zend_try {
-         if (php_request_startup(TSRMLS_C) != FAILURE) {
-             MAKE_STD_ZVAL(name);
-             ZVAL_STRING(name, Tcl_GetString(objv[2]), 1);
-             call_user_function(CG(function_table), NULL, name, NULL, 0, NULL, 0);
-             Tcl_AppendResult(interp, ctx.buffer, NULL);
-             zval_ptr_dtor(&name);
-             php_request_shutdown(NULL);
-         }
-       } zend_end_try();
-       break;
-
-    case cmdVAR:
-       if (objc < 3) {
-           Tcl_WrongNumArgs(interp, 2, objv, "varname");
-           status = TCL_ERROR;
-           break;
-       }
-       zend_try {
-         if (php_request_startup(TSRMLS_C) != FAILURE) {
-             MAKE_STD_ZVAL(val);
-             zend_eval_string(Tcl_GetString(objv[2]), val, "ns:php" TSRMLS_CC);
-             convert_to_string_ex(&val);
-             Tcl_AppendResult(interp, val->value.str.val, NULL);
-             zval_ptr_dtor(&val);
-             php_request_shutdown(NULL);
-         }
-       } zend_end_try();
-       break;
-
-    case cmdVERSION:
-       Tcl_AppendResult(interp, PHP_VERSION, NULL);
-       break;
-    }
-    ns_free(ctx.buffer);
-    return status;
-}
-
-static int php_ns_command(Tcl_Interp *interp, void *arg)
-{
-    Tcl_CreateObjCommand(interp, "ns_php", PHPObjCmd, arg, NULL);
-    return TCL_OK;
-}
-
-/*
- * Ns_ModuleInit() is called by Naviserver once at startup
- *
- * This functions allocates basic structures and initializes basic services.
- */
-
-int Ns_ModuleInit(char *server, char *module)
-{
-    int i;
-    char *path;
-    Ns_Set *set;
-
-    tsrm_startup(1, 1, TSRM_ERROR_LEVEL_CORE, NULL);
-    sapi_startup(&naviserver_sapi_module);
-    sapi_module.startup(&naviserver_sapi_module);
-
-    /* read the configuration */
-    path = Ns_ConfigGetPath(server, module, NULL);
-    set = Ns_ConfigGetSection(path);
-
-    for (i = 0; set && i < Ns_SetSize(set); i++) {
-        char *key = Ns_SetKey(set, i);
-        char *value = Ns_SetValue(set, i);
-
-        if (!strcasecmp(key, "map")) {
-            Ns_Log(Notice, "Registering PHP for \"%s\"", value);
-            Ns_RegisterRequest(server, "GET", value, php_ns_request_handler, NULL, 0, 0);
-            Ns_RegisterRequest(server, "POST", value, php_ns_request_handler, NULL, 0, 0);
-            Ns_RegisterRequest(server, "HEAD", value, php_ns_request_handler, NULL, 0, 0);
-        }
-    }
-
-    Ns_TclRegisterTrace(server, php_ns_command, 0, NS_TCL_TRACE_CREATE);
-
-    Ns_Log(Notice, "nsphp: started %s", PHP_VERSION);
-    return NS_OK;
-}
-
-zend_module_entry pdo_nsd_module_entry;
-
-PHP_MINIT_FUNCTION(pdo_nsd);
-PHP_MSHUTDOWN_FUNCTION(pdo_nsd);
-PHP_MINFO_FUNCTION(pdo_nsd);
-PHP_RSHUTDOWN_FUNCTION(pdo_nsd);
-
-static int pdo_nsd_stmt_dtor(pdo_stmt_t *stmt TSRMLS_DC)
-{
-	return 1;
-}
-
-static int pdo_nsd_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC)
-{
-	return 1;	
-}
-
-static int pdo_nsd_stmt_fetch(pdo_stmt_t *stmt,	enum pdo_fetch_orientation ori, long offset TSRMLS_DC)
-{
-	return 0;
-}
-
-static int pdo_nsd_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC)
-{
-	return 1;
-}
-
-static int pdo_nsd_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, unsigned long *len, int *caller_frees TSRMLS_DC)
-{
-	return 1;
-}
-
-static int pdo_nsd_stmt_param_hook(pdo_stmt_t *stmt, struct pdo_bound_param_data *param, enum pdo_param_event event_type TSRMLS_DC)
-{
-	return 1;
-}
-
-static int nsd_nsd_stmt_cursor_closer(pdo_stmt_t *stmt TSRMLS_DC)
-{
-	return 1;
-}
-
-struct pdo_stmt_methods nsd_stmt_methods = {
-	pdo_nsd_stmt_dtor,
-	pdo_nsd_stmt_execute,
-	pdo_nsd_stmt_fetch,
-	pdo_nsd_stmt_describe,
-	pdo_nsd_stmt_get_col,
-	pdo_nsd_stmt_param_hook,
-	NULL, /* set attr */
-	NULL, /* get attr */
-	NULL, /* meta */
-	NULL, /* nextrow */
-	nsd_nsd_stmt_cursor_closer
-};
-
-static int nsd_fetch_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, zval *info TSRMLS_DC)
-{
-    Ns_DbHandle *db = (Ns_DbHandle *)dbh->driver_data;
-
-    add_next_index_string(info, db->dsExceptionMsg.string, 0);
     return 1;
 }
 
-
-static int nsd_handle_closer(pdo_dbh_t *dbh TSRMLS_DC)
+static int pdo_naviserver_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC)
 {
-    Ns_DbHandle *db = (Ns_DbHandle *)dbh->driver_data;
+    ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
+
+    switch (Ns_DbExec(db->db, db->sql)) {
+    case NS_ERROR:
+        zend_throw_exception_ex(php_pdo_get_exception(), 0 TSRMLS_CC, db->db->dsExceptionMsg.string);
+        return 0;
+
+    case NS_DML:
+        return 0;
+
+    case NS_ROWS:
+        Ns_DbBindRow(db->db);
+        stmt->column_count = db->db->row->size;
+        break;
+    }
+    return 1;
+}
+
+static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt,	enum pdo_fetch_orientation ori, long offset TSRMLS_DC)
+{
+    ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
+
+    switch (Ns_DbGetRow(db->db, db->row)) {
+    case NS_ERROR:
+    case NS_END_DATA:
+        return 0;
+    }
+    return 1;
+}
+
+static int pdo_naviserver_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC)
+{
+    ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
+    struct pdo_column_data *cols = stmt->columns;
+
+    if (colno >= db->db->row->size) {
+        return 0;
+    }
+    cols[colno].param_type = PDO_PARAM_STR;
+    cols[colno].name = estrdup(db->db->row->fields[colno].name);
+    cols[colno].namelen = strlen(cols[colno].name);
+    // We do not know column maxwidth, let's use size of the column value
+    cols[colno].maxlen = db->db->row->fields[colno].value ? strlen(db->db->row->fields[colno].value) : 0;
+    cols[colno].precision = 0;
+
+    return 1;
+}
+
+static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, unsigned long *len, int *caller_frees TSRMLS_DC)
+{
+    ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
+
+    if (colno >= db->row->size) {
+        return 0;
+    }
+    *ptr = db->row->fields[colno].value;
+    *len = *ptr ? strlen(db->row->fields[colno].value) : 0;
+    return 1;
+}
+
+static int pdo_naviserver_handle_fetch_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, zval *info TSRMLS_DC)
+{
+    ns_pdo_handle *db = (ns_pdo_handle *)dbh->driver_data;
+
+    add_next_index_string(info, db->db->dsExceptionMsg.string, 0);
+    return 1;
+}
+
+static int pdo_naviserver_handle_closer(pdo_dbh_t *dbh TSRMLS_DC)
+{
+    ns_pdo_handle *db = (ns_pdo_handle *)dbh->driver_data;
 
     if (db) {
-        Ns_DbPoolPutHandle(db);
+        ns_free(db->sql);
+        Ns_SetFree(db->row);
+        Ns_DbPoolPutHandle(db->db);
+        ns_free(db);
         dbh->driver_data = NULL;
+        return 1;
     }
     return 0;
 }
 
-static int nsd_handle_preparer(pdo_dbh_t *dbh, const char *sql, long sql_len, pdo_stmt_t *stmt, zval *driver_options TSRMLS_DC)
+static int pdo_naviserver_handle_quoter(pdo_dbh_t *dbh, const char *unquoted, int unquotedlen, char **quoted, int *quotedlen, enum pdo_param_type paramtype TSRMLS_DC)
 {
-    Ns_DbHandle *db = (Ns_DbHandle *)dbh->driver_data;
+    char *q;
+    int l = 1;
 
-    stmt->driver_data = db;
-    stmt->methods = &nsd_stmt_methods;
-    stmt->supports_placeholders = PDO_PLACEHOLDER_NONE;
+    *quoted = q = safe_emalloc(2, unquotedlen, 3);
+    *q++ = '\'';
+
+    while (unquotedlen--) {
+        if (*unquoted == '\'') {
+            *q++ = '\'';
+            *q++ = '\'';
+            l += 2;
+        } else {
+            *q++ = *unquoted;
+            ++l;
+        }
+        unquoted++;
+    }
+
+    *q++ = '\'';
+    *q++ = '\0';
+    *quotedlen = l+1;
     return 1;
 }
 
-static long nsd_handle_doer(pdo_dbh_t *dbh, const char *sql, long sql_len TSRMLS_DC)
+static int pdo_naviserver_handle_preparer(pdo_dbh_t *dbh, const char *sql, long sql_len, pdo_stmt_t *stmt, zval *driver_options TSRMLS_DC)
 {
-    Ns_DbHandle *db = (Ns_DbHandle *)dbh->driver_data;
+    ns_pdo_handle *db = (ns_pdo_handle *)dbh->driver_data;
 
-    switch (Ns_DbExec(db, (char*)sql)) {
+    ns_free(db->sql);
+    db->sql = ns_strcopy(sql);
+    stmt->driver_data = db;
+    stmt->methods = &pdo_naviserver_stmt_methods;
+    stmt->supports_placeholders = PDO_PLACEHOLDER_NONE;
+
+    return 1;
+}
+
+static long pdo_naviserver_handle_doer(pdo_dbh_t *dbh, const char *sql, long sql_len TSRMLS_DC)
+{
+    ns_pdo_handle *db = (ns_pdo_handle *)dbh->driver_data;
+
+    switch (Ns_DbExec(db->db, (char*)sql)) {
     case NS_ERROR:
         return -1;
 
@@ -1310,92 +1442,23 @@ static long nsd_handle_doer(pdo_dbh_t *dbh, const char *sql, long sql_len TSRMLS
     }
 }
 
-static struct pdo_dbh_methods nsd_methods = {
-	nsd_handle_closer,
-	nsd_handle_preparer,
-	nsd_handle_doer,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL, /* last insert */
-	nsd_fetch_error, /* fetch error */
-	NULL, /* get attr */
-	NULL, /* check liveness */
-};
-
-static int pdo_nsd_handle_factory(pdo_dbh_t *dbh, zval *driver_options TSRMLS_DC)
+static int pdo_naviserver_handle_factory(pdo_dbh_t *dbh, zval *driver_options TSRMLS_DC)
 {
-	Ns_DbHandle *db;
+    ns_pdo_handle *db = ns_malloc(sizeof(ns_pdo_handle));
 
-	db = Ns_DbPoolTimedGetHandle(driver_options->value.str.val, -1);
+    db->db = Ns_DbPoolTimedGetHandle((char *)dbh->data_source, -1);
+    if (db->db == NULL) {
+        ns_free(db);
+        zend_throw_exception_ex(php_pdo_get_exception(), 0 TSRMLS_CC, "Unable to get handle for %s", dbh->data_source);
+        return -1;
+    }
+    db->sql = NULL;
+    db->row = Ns_SetCreate(NULL);
+    dbh->max_escaped_char_length = 2;
+    dbh->alloc_own_columns = 1;
+    dbh->methods = &pdo_naviserver_methods;
+    dbh->driver_data = db;
 
-	dbh->max_escaped_char_length = 2;
-	dbh->alloc_own_columns = 1;
-	dbh->methods = &nsd_methods;
-	dbh->driver_data = db;
-
-	if (db == NULL) {
-            zend_throw_exception_ex(php_pdo_get_exception(), 0 TSRMLS_CC, "Unable to get handle for %s", dbh->data_source);
-            return -1;
-	}
-	return 1;
-}
-
-pdo_driver_t pdo_nsd_driver = {
-	PDO_DRIVER_HEADER(nsd),
-	pdo_nsd_handle_factory
-};
-
-zend_function_entry pdo_nsd_functions[] = {
-	{NULL, NULL, NULL}
-};
-
-static zend_module_dep pdo_nsd_deps[] = {
-	ZEND_MOD_REQUIRED("pdo")
-	{NULL, NULL, NULL}
-};
-
-zend_module_entry pdo_nsd_module_entry = {
-	STANDARD_MODULE_HEADER_EX, NULL,
-	pdo_nsd_deps,
-	"pdo_nsd",
-	pdo_nsd_functions,
-	PHP_MINIT(pdo_nsd),
-	PHP_MSHUTDOWN(pdo_nsd),
-	NULL,
-	PHP_RSHUTDOWN(pdo_nsd),
-	PHP_MINFO(pdo_nsd),
-	"1.0",
-	STANDARD_MODULE_PROPERTIES
-};
-
-ZEND_GET_MODULE(pdo_nsd)
-
-PHP_RSHUTDOWN_FUNCTION(pdo_nsd)
-{
-	return SUCCESS;
-}
-
-PHP_MINIT_FUNCTION(pdo_nsd)
-{
-	if (FAILURE == php_pdo_register_driver(&pdo_nsd_driver)) {
-		return FAILURE;
-	}
-	return SUCCESS;
-}
-
-PHP_MSHUTDOWN_FUNCTION(pdo_nsd)
-{
-	php_pdo_unregister_driver(&pdo_nsd_driver);
-	return SUCCESS;
-}
-
-PHP_MINFO_FUNCTION(pdo_nsd)
-{
-	php_info_print_table_start();
-	php_info_print_table_header(2, "PDO Driver for Naviserver");
-	php_info_print_table_end();
+    return 1;
 }
 

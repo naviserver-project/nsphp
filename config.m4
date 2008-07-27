@@ -21,6 +21,7 @@ if test "$withval" != "no"; then
         PHP_ADD_INCLUDE(../)
         PHP_ADD_INCLUDE(../../../)
         PHP_SELECT_SAPI(naviserver, shared, nsphp.c)
+        PHP_ADD_EXTENSION_DEP(pdo_naviserver, pdo)
         INSTALL_IT="\$(SHELL) \$(srcdir)/install-sh -m 0755 $SAPI_SHARED \$(INSTALL_ROOT)$NS_PATH/bin/"
         RESULT=yes
 else

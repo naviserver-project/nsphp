@@ -79,15 +79,16 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
      Call PHP function and return result
 
-  ns_php val varname
+  ns_php var varname
 
      Returns value of the PHP variable
 
 
-6) Calling Tcl scripts from PHP
+
+6) Native PHP functions
 
 
-  ns_header name
+  ns_header(name);
 
      Returns HTTP header
 
@@ -163,7 +164,18 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
     can be shared with Tcl and other connections.
 
 
+7) PDO driver for ns_db
 
+This module implemnts internal PDO driver which uses the same ns_db handles and pools as
+the rest of Naviserver. 
 
+To allocate DB handle use:
 
+$db = new PDO("naviserver:poolname");
 
+  where naviserver is PDO driver name and poolname is any pool defined
+  in nsd.tcl. After that is works the same way as other PHP PDO drivers.
+
+  The limitations are:
+     - all values are strings
+     - no native bind parameters, it uses PHP/PDO bind emulation

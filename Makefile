@@ -3,7 +3,7 @@ ifndef NAVISERVER
 endif
 
 php_ver 	= php-5.2.6
-php_dir 	= /usr/local/php
+php_dir 	= /usr/local/ns/php
 
 
 all:
