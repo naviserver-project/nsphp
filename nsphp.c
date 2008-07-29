@@ -157,9 +157,6 @@ static zend_function_entry naviserver_functions[] = {
     PHP_FE(ns_log,           NULL)
     PHP_FE(ns_headers,       NULL)
     PHP_FE(ns_outputheaders, NULL)
-    PHP_FE(ns_header,        NULL)
-    PHP_FE(ns_eval,          NULL)
-    PHP_FE(ns_log,           NULL)
     PHP_FE(ns_info,          NULL)
     PHP_FE(ns_conn,          NULL)
     PHP_FE(ns_returnredirect,NULL)
@@ -168,12 +165,12 @@ static zend_function_entry naviserver_functions[] = {
     PHP_FE(ns_queryexists,   NULL)
     PHP_FE(ns_queryget,      NULL)
     PHP_FE(ns_querygetall,   NULL)
-    PHP_FE(nsv_get,        NULL)
-    PHP_FE(nsv_set,        NULL)
-    PHP_FE(nsv_exists,     NULL)
-    PHP_FE(nsv_incr,       NULL)
-    PHP_FE(nsv_unset,      NULL)
-    PHP_FE(nsv_append,     NULL)
+    PHP_FE(nsv_get,          NULL)
+    PHP_FE(nsv_set,          NULL)
+    PHP_FE(nsv_exists,       NULL)
+    PHP_FE(nsv_incr,         NULL)
+    PHP_FE(nsv_unset,        NULL)
+    PHP_FE(nsv_append,       NULL)
     {NULL, NULL, NULL}
 };
 
