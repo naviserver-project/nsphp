@@ -1007,18 +1007,19 @@ static int php_ns_sapi_ub_write(const char *str, uint str_length TSRMLS_DC)
 static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header, sapi_headers_struct *sapi_headers TSRMLS_DC)
 {
     ns_context *ctx = SG(server_context);
-    char *p, *header_name, *header_content;
+    char *p, *name;
 
-    header_name = sapi_header->header;
-    header_content = p = strchr(header_name, ':');
-
+    name = sapi_header->header;
+    p = strchr(name, ':');
     if (ctx->conn != NULL && p != NULL) {
-        *p = '\0';
-        do {
-           header_content++;
-        } while (*header_content == ' ');
-        Ns_ConnCondSetHeaders(ctx->conn, header_name, header_content);
-        *p = ':';
+        *p++ = '\0';
+        while (*p == ' ') p++;
+
+        if (sapi_header->replace == 0 || !strcasecmp(name, "Set-Cookie")) {
+            Ns_ConnSetHeaders(ctx->conn, name, p);
+        } else {
+            Ns_ConnUpdateHeaders(ctx->conn, name, p);
+        }
     }
     efree(sapi_header->header);
     return 0;
