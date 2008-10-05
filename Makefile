@@ -36,6 +36,7 @@ build:
 	--with-flatfile \
 	--with-gd \
 	--with-imap \
+	--with-kerberos \
 	--with-ldap \
 	--with-ldap-sasl \
 	--with-mcrypt=/usr \
