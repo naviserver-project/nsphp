@@ -908,73 +908,81 @@ PHP_FUNCTION(ns_querygetall)
 
 PHP_FUNCTION(nsv_get)
 {
-    char *aname, *key, *result;
     int alen, klen;
+    char *aname, *key;
+    Ns_DString ds;
+    Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &aname, &alen, &key, &klen) == FAILURE) {
         RETURN_FALSE;
     }
-    result = Ns_ConnNsvGet(aname, key);
-    if (result != NULL) {
-        char *value = estrdup(result);
-        ns_free(result);
+    Ns_DStringInit(&ds);
+    if (Ns_VarGet(Ns_ConnServer(conn), aname, key, &ds) == NS_OK) {
+        char *value = estrdup(ds.string);
+        Ns_DStringFree(&ds);
         RETURN_STRING(value, 0);
     }
+    Ns_DStringFree(&ds);
 }
 
 PHP_FUNCTION(nsv_set)
 {
     char *aname, *key, *value;
     int alen, klen, vlen;
+    Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sss", &aname, &alen, &key, &klen, &value, &vlen) == FAILURE) {
         RETURN_FALSE;
     }
-    RETURN_LONG(Ns_ConnNsvSet(aname, key, value));
+    RETURN_LONG(Ns_VarSet(Ns_ConnServer(conn), aname, key, value, -1));
 }
 
 PHP_FUNCTION(nsv_exists)
 {
     char *aname, *key;
     int alen, klen;
+    Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sss", &aname, &alen, &key, &klen) == FAILURE) {
         RETURN_FALSE;
     }
-    RETURN_LONG(Ns_ConnNsvExists(aname, key));
+    RETURN_LONG(Ns_VarExists(Ns_ConnServer(conn), aname, key));
 }
 
 PHP_FUNCTION(nsv_incr)
 {
     char *aname, *key;
     int alen, klen, count = 1;
+    Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &aname, &alen, &key, &klen, &count) == FAILURE) {
         RETURN_FALSE;
     }
-    RETURN_LONG(Ns_ConnNsvIncr( aname, key, count));
+    RETURN_LONG(Ns_VarIncr(Ns_ConnServer(conn), aname, key, count));
 }
 
 PHP_FUNCTION(nsv_unset)
 {
     char *aname, *key = NULL;
     int alen, klen;
+    Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|s", &aname, &alen, &key, &klen) == FAILURE) {
         RETURN_FALSE;
     }
-    RETURN_LONG(Ns_ConnNsvUnset(aname, key));
+    RETURN_LONG(Ns_VarUnset(Ns_ConnServer(conn), aname, key));
 }
 
 PHP_FUNCTION(nsv_append)
 {
     char *aname, *key, *value;
     int alen, klen, vlen;
+    Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sss", &aname, &alen, &key, &klen, &value, &vlen) == FAILURE) {
         RETURN_FALSE;
     }
-    RETURN_LONG(Ns_ConnNsvAppend(aname, key, value, NULL));
+    RETURN_LONG(Ns_VarAppend(Ns_ConnServer(conn), aname, key, value, -1));
 }
 
 
@@ -994,9 +1002,10 @@ static int php_ns_sapi_ub_write(const char *str, uint str_length TSRMLS_DC)
         return str_length;
     }
 
-    if (Ns_ConnWriteData(ctx->conn, (void *) str, str_length, 0) != NS_OK) {
+    if (Ns_ConnWriteData(ctx->conn, (void *) str, str_length, NS_CONN_STREAM) != NS_OK) {
         php_handle_aborted_connection();
     }
+
     return str_length;
 }
 
@@ -1042,8 +1051,8 @@ static int php_ns_sapi_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
     if (Ns_SetIGet(ctx->conn->outputheaders, "Content-Type") == NULL) {
         ctype = "text/html";
     }
-    Ns_ConnSetRequiredHeaders(ctx->conn, ctype, -1);
-    Ns_ConnFlushHeaders(ctx->conn, SG(sapi_headers).http_response_code);
+    Ns_ConnSetResponseStatus(ctx->conn, SG(sapi_headers).http_response_code);
+
     return SAPI_HEADER_SENT_SUCCESSFULLY;
 }
 
