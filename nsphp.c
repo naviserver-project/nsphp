@@ -245,7 +245,7 @@ int Ns_ModuleInit(char *server, char *module)
     char *path;
     Ns_Set *set;
 
-    tsrm_startup(1, 1, TSRM_ERROR_LEVEL_CORE, NULL);
+    tsrm_startup(1, 1, TSRM_ERROR_LEVEL_INFO, NULL);
     sapi_startup(&naviserver_sapi_module);
     sapi_module.startup(&naviserver_sapi_module);
 
@@ -1041,17 +1041,13 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header, sapi_head
 
 static int php_ns_sapi_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
 {
-    char *ctype = NULL;
     ns_context *ctx = SG(server_context);
 
-    if (!ctx->conn) {
-        return SAPI_HEADER_SENT_SUCCESSFULLY;
+    if (ctx->conn != NULL) {
+        Ns_ConnSetResponseStatus(ctx->conn, SG(sapi_headers).http_response_code);
     }
 
-    if (Ns_SetIGet(ctx->conn->outputheaders, "Content-Type") == NULL) {
-        ctype = "text/html";
-    }
-    Ns_ConnSetResponseStatus(ctx->conn, SG(sapi_headers).http_response_code);
+    Ns_ConnWriteData(ctx->conn, NULL, 0, NS_CONN_STREAM);
 
     return SAPI_HEADER_SENT_SUCCESSFULLY;
 }
@@ -1088,11 +1084,10 @@ static char *php_ns_sapi_read_cookies(TSRMLS_D)
 {
     ns_context *ctx = SG(server_context);
 
-    if (!ctx->conn) {
-        return NULL;
+    if (ctx->conn != NULL) {
+        return Ns_SetIGet(ctx->conn->headers, "Cookie");
     }
-
-    return Ns_SetIGet(ctx->conn->headers, "Cookie");
+    return NULL;
 }
 
 static void php_ns_sapi_log_message(char *message)
@@ -1254,7 +1249,6 @@ static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
 {
     Ns_DString ds;
     ns_context ctx;
-    int status = NS_OK;
     zend_file_handle file_handle = {0};
 
     TSRMLS_FETCH();
@@ -1285,14 +1279,14 @@ static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
 
     zend_first_try {
        php_request_startup(TSRMLS_C);
-       status = php_execute_script(&file_handle TSRMLS_CC) ? NS_OK : NS_ERROR;
+       php_execute_script(&file_handle TSRMLS_CC) ? NS_OK : NS_ERROR;
        php_request_shutdown(NULL);
     } zend_catch {
-       status = NS_ERROR;
+       Ns_Log(Error, "nsphp: error in processing %s", file_handle.filename);;
     } zend_end_try();
 
     Ns_DStringFree(&ds);
-    return status;
+    return NS_OK;
 }
 
 static int pdo_naviserver_stmt_dtor(pdo_stmt_t *stmt TSRMLS_DC)
