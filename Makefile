@@ -8,6 +8,7 @@ php_dir 	= /usr/local/ns/php
 
 all:
 	make -C $(php_ver)
+	cp $(php_ver)/libs/libphp5.so .
 
 install: all
 	cp $(php_ver)/libs/libphp5.so $(NAVISERVER)/bin
@@ -65,4 +66,14 @@ build:
 clean:
 	-rm -rf *.so *~ *.o *.lo .libs php-5*
 
+NSD		= $(NAVISERVER)/bin/nsd
+NS_TEST_CFG     = -c -d -t tests/config.tcl
+NS_TEST_ALL     = all.tcl $(TCLTESTARGS)
+LD_LIBRARY_PATH = LD_LIBRARY_PATH="./:$(NAVISERVER)/lib:$$LD_LIBRARY_PATH"
+
+test: all
+	export $(LD_LIBRARY_PATH); $(NSD) $(NS_TEST_CFG) $(NS_TEST_ALL)
+
+runtest: all
+	export $(LD_LIBRARY_PATH); $(NSD) $(NS_TEST_CFG)
 
