@@ -1,0 +1,117 @@
+2008-11-08 22:39  Vlad Seryakov <seryakov@users.sf.net>
+
+	* nsphp.c, tests/php.test, tests/pages/test.php: Fixed nsphp bug
+	  with cunked encoding and headers-only responss triggered by PHP
+	  ext function
+
+2008-11-08 05:06  Vlad Seryakov <seryakov@users.sf.net>
+
+	* README: simplified php configure process
+
+2008-11-08 05:01  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile, tests/php.test: simplified php configure process
+
+2008-11-08 03:35  Vlad Seryakov <seryakov@users.sf.net>
+
+	* tests/: all.tcl, config.tcl, php.test, modules/testhttp.tcl,
+	  pages/test.php: added tests for nsphp
+
+2008-11-08 03:31  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile: added tests for nsphp
+
+2008-10-30 01:13  Vlad Seryakov <seryakov@users.sf.net>
+
+	* nsphp.c: Fixed bug with PHP exiting but not flushing the headers
+
+2008-10-21 22:46  Vlad Seryakov <seryakov@users.sf.net>
+
+	* nsphp.c: new function, new module tftp, fixed module nsphp
+
+2008-10-05 18:03  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile: OS X does not have O_LARGEFILE
+
+2008-08-08 00:34  Vlad Seryakov <seryakov@users.sf.net>
+
+	* nsphp.c: Fixed header handler function, now add/replaces headers
+	  correct;y
+
+2008-07-29 17:51  Vlad Seryakov <seryakov@users.sf.net>
+
+	* nsphp.c: Removed dups in PHP function definition array
+
+2008-07-27 20:21  Vlad Seryakov <seryakov@users.sf.net>
+
+	* README, nsphp.c: php module updates, new pdo driver
+
+2008-07-27 20:18  Vlad Seryakov <seryakov@users.sf.net>
+
+	* README: php module updates, new pdo driver
+
+2008-07-27 20:08  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile, README, config.m4, nsphp.c: php module updates, new pdo
+	  driver
+
+2008-07-25 23:01  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile, README, config.m4, nsphp.c: New public C API for NSV,
+	  improved nsphp module
+
+2008-05-05 18:15  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile, README, nsphp.c: Fixed auth bug, used wrong memory
+	  allocation
+
+2008-01-30 16:44  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile, README, nsphp.c: Update to PHP 5.2.5, make SERVER_NAME
+	  virtual host aware
+
+2007-10-19 02:51  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile:  bump php version to the lastest one
+
+2007-03-22 18:15  Vlad Seryakov <seryakov@users.sf.net>
+
+	* nsphp.c: Remove all GPL source code from the modules, now thety
+	  are pure Mozilla licensed except ffmpeg which is obsolete anyway
+
+2007-03-10 18:11  Vlad Seryakov <seryakov@users.sf.net>
+
+	* LICENSE: Putting correct license file instead of broken by sed
+
+2007-03-10 18:04  Vlad Seryakov <seryakov@users.sf.net>
+
+	* LICENSE: Global change of all source files, replacing AOLserver
+	  license with mozilla license to have consistent licensing mode
+
+2006-12-11 05:06  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile: Updated to PHP 5.2.0
+
+2006-06-26 22:33  Vlad Seryakov <seryakov@users.sf.net>
+
+	* README, nsphp.c: Added new ns_log PHP function, tested with more
+	  webmail packages
+
+2006-06-26 15:52  Vlad Seryakov <seryakov@users.sf.net>
+
+	* Makefile, README: Added automatic downloading an dcompiling of
+	  PHP module
+
+2006-06-25 17:47  Vlad Seryakov <seryakov@users.sf.net>
+
+	* LICENSE, Makefile: Added LICENSE AND MAkefile files to nshp
+	  module
+
+2006-06-24 16:29  Vlad Seryakov <seryakov@users.sf.net>
+
+	* README, config.m4, nsphp.c, php.sym: Initial import of PHP module
+
+2006-06-24 16:29  Vlad Seryakov <seryakov@users.sf.net>
+
+	* README, config.m4, nsphp.c, php.sym: Initial revision
+
