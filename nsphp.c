@@ -985,28 +985,29 @@ PHP_FUNCTION(nsv_append)
     RETURN_LONG(Ns_VarAppend(Ns_ConnServer(conn), aname, key, value, -1));
 }
 
-
 /*
  * php_ns_sapi_ub_write() writes data to the client connection.
  */
 
-static int php_ns_sapi_ub_write(const char *str, uint str_length TSRMLS_DC)
+static int php_ns_sapi_ub_write(const char *str, uint len TSRMLS_DC)
 {
     ns_context *ctx = SG(server_context);
 
-    if (!ctx->conn) {
+    // We are called from non-connection session, add data to internal buffer 
+    if (ctx->conn == NULL) {
         int size = ctx->buffer ? strlen(ctx->buffer) : 0;
-        ctx->buffer = ns_realloc(ctx->buffer, size + str_length + 1);
-        strncpy(&(ctx->buffer[size]), str, str_length);
-        ctx->buffer[size + str_length] = 0;
-        return str_length;
+        ctx->buffer = ns_realloc(ctx->buffer, size + len + 1);
+        strncpy(&(ctx->buffer[size]), str, len);
+        ctx->buffer[size + len] = 0;
+        return len;
     }
 
-    if (Ns_ConnWriteData(ctx->conn, (void *) str, str_length, NS_CONN_STREAM) != NS_OK) {
+    if (Ns_ConnWriteData(ctx->conn, (void *) str, len, NS_CONN_STREAM) != NS_OK) {
         php_handle_aborted_connection();
+        return -1;
     }
 
-    return str_length;
+    return len;
 }
 
 /*
@@ -1020,10 +1021,14 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header, sapi_head
 
     name = sapi_header->header;
     p = strchr(name, ':');
+
     if (ctx->conn != NULL && p != NULL) {
         *p++ = '\0';
         while (*p == ' ') p++;
 
+        if (!strcasecmp(name, "Content-Length")) {
+            Ns_ConnSetLengthHeader(ctx->conn, atoll(p));
+        } else
         if (sapi_header->replace == 0 || !strcasecmp(name, "Set-Cookie")) {
             Ns_ConnSetHeaders(ctx->conn, name, p);
         } else {
@@ -1047,8 +1052,6 @@ static int php_ns_sapi_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
         Ns_ConnSetResponseStatus(ctx->conn, SG(sapi_headers).http_response_code);
     }
 
-    Ns_ConnWriteData(ctx->conn, NULL, 0, NS_CONN_STREAM);
-
     return SAPI_HEADER_SENT_SUCCESSFULLY;
 }
 
@@ -1063,12 +1066,12 @@ static int php_ns_sapi_read_post(char *buf, uint count_bytes TSRMLS_DC)
     uint max_read;
     ns_context *ctx = SG(server_context);
 
-    if (!ctx->conn || (data = Ns_ConnContent(ctx->conn)) == NULL) {
+    if (ctx->conn == NULL || (data = Ns_ConnContent(ctx->conn)) == NULL) {
         return 0;
     }
 
     max_read = MIN(ctx->data_avail, count_bytes);
-    if (max_read) {
+    if (max_read > 0) {
         memcpy(buf, data + ctx->data_offset, max_read);
         ctx->data_avail -= max_read;
         ctx->data_offset += max_read;
@@ -1101,7 +1104,7 @@ static void php_ns_sapi_info(ZEND_MODULE_INFO_FUNC_ARGS)
     int i, uptime = Ns_InfoUptime();
     ns_context *ctx = SG(server_context);
 
-    if (!ctx->conn) {
+    if (ctx->conn == NULL) {
         return;
     }
 
@@ -1146,7 +1149,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
     char *p, *key, *value, c;
     ns_context *ctx = SG(server_context);
 
-    if (!ctx->conn) {
+    if (ctx->conn == NULL) {
         return;
     }
 
@@ -1284,6 +1287,10 @@ static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
     } zend_catch {
        Ns_Log(Error, "nsphp: error in processing %s", file_handle.filename);;
     } zend_end_try();
+
+    if (!(conn->flags & NS_CONN_SENTHDRS)) {
+        Ns_ConnWriteData(conn, NULL, 0, 0);
+    }
 
     Ns_DStringFree(&ds);
     return NS_OK;

@@ -45,16 +45,4 @@ test file-1.1 {php_testpage} -body {
         -setheaders {Cookie test=1} GET /test.php
 } -result "304 text/html"
 
-test php-1.2 {sequential requests w/keepalive} -body {
-    foreach n {0 1 2} {
-        lappend results [nstest_http -http 1.1 \
-                             -getbody 1 \
-                             -getheaders content-length \
-                             GET /test.php]
-    }
-    set results
-} -cleanup {
-    unset -nocomplain results
-} -result "{200 10 {test page\n}} {200 10 {test page\n}} {200 10 {test page\n}}"
-
 cleanupTests
