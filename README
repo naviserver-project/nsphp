@@ -8,36 +8,21 @@ Naviserver PHP module
 It has been tested with Drupal, RoundCube webmail, MailBee webmail, 
 Mambo, Horder/IMP, MediaWiki, PmWiki
 
+
 2) Compiling PHP
 
-  $ cd nsphp
+  The version of PHP you are using will need at least the following
+  options enabled:
 
-  $ wget http://www.php.net/distributions/php-5.2.6.tar.gz
+  $ ./configure --enable-embed=shared --enable-pdo
 
-  $ tar -xzf php-5.2.6.tar.gz
 
-  $ mkdir php-5.2.6/sapi/naviserver
+3) Building nsphp
 
-  $ cp nsphp.c config.m4 php.sym php-5.2.6/sapi/naviserver
+  When building the nsphp module you must tell it where the naviserver
+  and php you would like to use are installed:
 
-  $ cd php-5.2.6
-
-  $ ./buildconf --force
-
-  $ ./configure --with-naviserver <other options>
-
-  $ make install
-
-  $ cp libs/libphp5.so /usr/local/ns/bin
-
-3) Alternatively, to build everything just type
-
-  $ make install
-
-  and it will download and build libphp5.so and
-  install it. By default it will install it into
-  /usr/local/php and will copy libphp5.so into
-  /usr/local/ns/bin
+  make NAVISERVER=/usr/local/ns PHP_CONFIG=/usr/local/php-5.2.6/bin/php-config
 
 
 4) Changing nsd.tcl

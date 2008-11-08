@@ -1,45 +1,30 @@
-ifndef NAVISERVER
-    NAVISERVER  = /usr/local/ns
-endif
 
-php_ver 	= php-5.2.6
-php_dir 	= /usr/local/ns/php
+VERSION          = 0.1
+
+NAVISERVER       = /usr/local/ns
+NSD              = $(NAVISERVER)/bin/nsd
+
+PHP_CONFIG       = php-config
+PHP_LIBS         = $(shell $(PHP_CONFIG) --libs)
+PHP_LIBDIR       = $(shell $(PHP_CONFIG) --prefix)/lib
+PHP_INCDIRS      = $(shell $(PHP_CONFIG) --includes)
+
+CFLAGS           += $(PHP_INCDIRS)
 
 
-all: configure
-	make -C $(php_ver)
-	cp $(php_ver)/libs/libphp5.so .
+MODNAME          = nsphp
 
-install: all
-	make -C $(php_ver) install
-	cp $(php_ver)/libs/libphp5.so $(NAVISERVER)/bin
+MOD              = $(MODNAME).so
+MODOBJS          = $(MODNAME).o
+MODLIBS          = -lphp5 -L$(PHP_LIBDIR) $(PHP_LIBS) $(CCRFLAG):$(PHP_LIBDIR)
 
-configure:
-	if [ ! -e /tmp/$(php_ver).tar.gz ]; then \
-	  wget -c -O /tmp/$(php_ver).tar.gz http://www.php.net/distributions/$(php_ver).tar.gz; \
-	fi
-	if [ ! -e $(php_ver) ]; then \
-          tar -xzf /tmp/$(php_ver).tar.gz && \
-	  ln -s `pwd` $(php_ver)/sapi/naviserver && \
-	  (cd $(php_ver) && \
-	   rm -rf configure && \
-	   ./buildconf --force && \
-  	   ./configure \
-	   --prefix=$(php_dir) \
-	   --with-config-file-path=$(php_dir)/etc \
-	   --mandir=$(php_dir)/man \
-	   --with-naviserver \
-	   --enable-debug \
-	   --disable-posix); \
-	fi
 
-clean:
-	-rm -rf *.so *~ *.o *.lo .libs php-5*
+include $(NAVISERVER)/include/Makefile.module
 
-NSD		= $(NAVISERVER)/bin/nsd
-NS_TEST_CFG     = -c -d -t tests/config.tcl
-NS_TEST_ALL     = all.tcl $(TCLTESTARGS)
-LD_LIBRARY_PATH = LD_LIBRARY_PATH="./:$(NAVISERVER)/lib:$$LD_LIBRARY_PATH"
+
+NS_TEST_CFG		= -c -d -t tests/config.tcl
+NS_TEST_ALL		= all.tcl $(TCLTESTARGS)
+LD_LIBRARY_PATH	= LD_LIBRARY_PATH="./::$$LD_LIBRARY_PATH"
 
 test: all
 	export $(LD_LIBRARY_PATH); $(NSD) $(NS_TEST_CFG) $(NS_TEST_ALL)
@@ -47,3 +32,26 @@ test: all
 runtest: all
 	export $(LD_LIBRARY_PATH); $(NSD) $(NS_TEST_CFG)
 
+gdbtest: all
+	@echo set args $(NS_TEST_CFG) $(NS_TEST_ALL) > gdb.run
+	export $(LD_LIBRARY_PATH); gdb -x gdb.run $(NSD)
+	rm gdb.run
+
+gdbruntest: all
+	@echo set args $(NS_TEST_CFG) > gdb.run
+	export $(LD_LIBRARY_PATH); gdb -x gdb.run $(NSD)
+	rm gdb.run
+
+memcheck: all
+	export $(LD_LIBRARY_PATH); valgrind --tool=memcheck $(NSD) $(NS_TEST_CFG) $(NS_TEST_ALL)
+
+
+
+SRCS = nsphp.c
+EXTRA = README LICENSE Makefile tests
+
+dist: all
+	rm -rf $(MODNAME)-$(VERSION)
+	mkdir $(MODNAME)-$(VERSION)
+	$(CP) $(SRCS) $(EXTRA) $(MODNAME)-$(VERSION)
+	tar czf $(MODNAME)-$(VERSION).tgz $(MODNAME)-$(VERSION)

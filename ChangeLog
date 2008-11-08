@@ -1,3 +1,9 @@
+2008-11-08  Stephen Deasey <sdeasey@users.sf.net>
+
+	* Makefile:
+	* tests/config.tcl: Enable build against in already installed
+	shared library version of php.
+
 2008-11-08 22:39  Vlad Seryakov <seryakov@users.sf.net>
 
 	* nsphp.c, tests/php.test, tests/pages/test.php: Fixed nsphp bug

@@ -21,7 +21,7 @@ ns_param   library         $homedir/modules
 ns_section "ns/server/test/modules"
 ns_param   nsdb            $bindir/nsdb.so
 ns_param   nssock          $bindir/nssock.so
-ns_param   nsphp           $homedir/../libphp5.so
+ns_param   nsphp           $homedir/../nsphp.so
 
 ns_section "ns/server/test/module/nssock"
 ns_param   port            8080
