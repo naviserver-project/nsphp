@@ -25,6 +25,9 @@
  *          based on aolserver module by Sascha Schumann <sascha@schumann.cx>
  */
 
+#include "ns.h"
+#include "nsdb.h"
+
 #define Debug php_Debug
 #include "php.h"
 #include "zend.h"
@@ -41,8 +44,6 @@
 #include "SAPI.h"
 
 #undef Debug
-#include "ns.h"
-#include "nsdb.h"
 
 #ifndef ZTS
 #error Naviserver module is only useable in thread-safe mode

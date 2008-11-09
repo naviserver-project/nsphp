@@ -55,3 +55,26 @@ dist: all
 	mkdir $(MODNAME)-$(VERSION)
 	$(CP) $(SRCS) $(EXTRA) $(MODNAME)-$(VERSION)
 	tar czf $(MODNAME)-$(VERSION).tgz $(MODNAME)-$(VERSION)
+
+PHP_HOME = $(NAVISERVER)/php
+PHP_VER = php-5.2.6
+
+build:
+	if [ ! -e /tmp/$(PHP_VER).tar.gz ]; then \
+          wget -c -O /tmp/$(PHP_VER).tar.gz http://www.php.net/distributions/$(PHP_VER).tar.gz; \
+        fi
+	if [ ! -e $(PHP_VER) ]; then \
+          tar -xzf /tmp/$(PHP_VER).tar.gz; \
+	fi
+	cd $(PHP_VER) && \
+	./configure --prefix=$(PHP_HOME) \
+                    --mandir=$(PHP_HOME)/man \
+                    --enable-debug \
+                    --enable-embed=shared \
+                    --with-config-file-path=$(PHP_HOME)/etc \
+                    --disable-posix \
+                    --enable-pdo \
+                    --enable-maintainer-zts && \
+        make install && \
+        cd .. && \
+        make install PHP_CONFIG=$(PHP_HOME)/bin/php-config

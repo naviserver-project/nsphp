@@ -16,6 +16,14 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
   $ ./configure --enable-embed=shared --enable-pdo
 
+  in case default PHP installation does not have embed and ZTS support,
+  PHP needs to be recompiled. Theree is automated target in the Makefile
+  to make this process easy
+
+  $ make build
+
+  It will download and build PHP as shared library and install it under
+  /usr/local/ns/php and compile nsphp against it.
 
 3) Building nsphp
 
