@@ -16,10 +16,14 @@ MODNAME          = nsphp
 
 MOD              = $(MODNAME).so
 MODOBJS          = $(MODNAME).o
-MODLIBS          = -lphp5 -L$(PHP_LIBDIR) $(PHP_LIBS) $(CCRFLAG):$(PHP_LIBDIR)
-
+MODLIBS          = -lphp5 -L$(PHP_LIBDIR) $(PHP_LIBS) 
 
 include $(NAVISERVER)/include/Makefile.module
+
+
+ifneq (,$(CCRFLAG))
+MODLIBS		+= $(CCRFLAG):$(PHP_LIBDIR)
+endif
 
 
 NS_TEST_CFG		= -c -d -t tests/config.tcl

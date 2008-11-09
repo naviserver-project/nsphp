@@ -5,6 +5,9 @@
           for systems where default PHP compiled without ZTS and 
           embed option(Archlinux)
 
+	* Makefile: On systems where no -rpath support (OS X), do
+          not use CCRFLAG macro
+
 2008-11-08  Stephen Deasey <sdeasey@users.sf.net>
 
 	* Makefile:
