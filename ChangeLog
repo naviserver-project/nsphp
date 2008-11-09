@@ -1,6 +1,6 @@
 2008-11-08 22:39  Vlad Seryakov <seryakov@users.sf.net>
 
-	* Makefile: Added little helper target to compile PHP with 
+	* Makefile: Added little helper target 'php' to compile PHP with 
           embed shared option and install under /usr/local/ns/php 
           for systems where default PHP compiled without ZTS and 
           embed option(Archlinux)

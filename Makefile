@@ -63,7 +63,7 @@ dist: all
 PHP_HOME = $(NAVISERVER)/php
 PHP_VER = php-5.2.6
 
-build:
+php:
 	if [ ! -e /tmp/$(PHP_VER).tar.gz ]; then \
           wget -c -O /tmp/$(PHP_VER).tar.gz http://www.php.net/distributions/$(PHP_VER).tar.gz; \
         fi

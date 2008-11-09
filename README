@@ -20,7 +20,7 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
   PHP needs to be recompiled. Theree is automated target in the Makefile
   to make this process easy
 
-  $ make build
+  $ make php
 
   It will download and build PHP as shared library and install it under
   /usr/local/ns/php and compile nsphp against it.
