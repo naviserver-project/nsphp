@@ -1,3 +1,8 @@
+2008-12-01 Vlad Seryakov <seryakov@users.sf.net>
+	
+	* Makefile: Add more options for custom php build, autodetect
+	in their configure does not work, some options have to be enabled manually
+	
 2008-11-08 22:39  Vlad Seryakov <seryakov@users.sf.net>
 
 	* Makefile: Added little helper target 'php' to compile PHP with 

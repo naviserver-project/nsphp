@@ -78,6 +78,24 @@ php:
                     --with-config-file-path=$(PHP_HOME)/etc \
                     --disable-posix \
                     --enable-pdo \
+                    --enable-sockets \
+                    --enable-soap \
+                    --enable-xml \
+                    --with-openssl \
+                    --with-zlib \
+                    --with-curl \
+                    --with-gd \
+                    --with-ldap \
+                    --with-xmlrpc \
+                    --with-pear \
+                    --with-pcre-regex \
+                    --with-gettext \
+                    --with-ttf \
+                    --enable-bcmath \
+                    --with-pgsql \
+                    --with-pdo-pgsql \
+                    --with-mysql \
+                    --with-pdo-mysql \
                     --enable-maintainer-zts && \
         make install && \
         cd .. && \
