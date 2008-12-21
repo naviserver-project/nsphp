@@ -84,7 +84,8 @@ php:
                     --with-openssl \
                     --with-zlib \
                     --with-curl \
-                    --with-gd \
+                    --with-gd=/usr \
+                    --enable-gd-native-ttf \
                     --with-ldap \
                     --with-xmlrpc \
                     --with-pear \
