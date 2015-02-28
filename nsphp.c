@@ -53,16 +53,16 @@
 #define STRDUP(s)              (s != NULL ? estrdup(s) : NULL) 
 
 typedef struct {
-   char *buffer;
-   Ns_Conn *conn;
-   size_t data_avail;
-   size_t data_offset;
+    char *buffer;
+    Ns_Conn *conn;
+    size_t data_avail;
+    size_t data_offset;
 } ns_context;
 
 typedef struct {
-   Ns_DbHandle *db;
-   Ns_Set *row;
-   char *sql;
+    Ns_DbHandle *db;
+    Ns_Set *row;
+    char *sql;
 } ns_pdo_handle;
 
 PHP_FUNCTION(ns_eval);
@@ -94,8 +94,10 @@ PHP_MINFO_FUNCTION(pdo_naviserver);
 PHP_RSHUTDOWN_FUNCTION(pdo_naviserver);
 
 static Tcl_ObjCmdProc php_ns_tcl_cmd;
-static int php_ns_tcl_init(Tcl_Interp *interp, void *arg);
-static void ThreadArgProc(Tcl_DString *dsPtr, void *proc, void *arg);
+static Ns_TclTraceProc php_ns_tcl_init;
+
+
+static Ns_ThreadArgProc ThreadArgProc;
 
 static int pdo_naviserver_handle_factory(pdo_dbh_t *dbh, zval *driver_options TSRMLS_DC);
 static int pdo_naviserver_handle_fetch_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, zval *info TSRMLS_DC);
@@ -105,21 +107,28 @@ static int pdo_naviserver_handle_quoter(pdo_dbh_t *dbh, const char *unquoted, in
 static long pdo_naviserver_handle_doer(pdo_dbh_t *dbh, const char *sql, long sql_len TSRMLS_DC);
 static int pdo_naviserver_stmt_dtor(pdo_stmt_t *stmt TSRMLS_DC);
 static int pdo_naviserver_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC);
-static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt,	enum pdo_fetch_orientation ori, long offset TSRMLS_DC);
+static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt,    enum pdo_fetch_orientation ori, long offset TSRMLS_DC);
 static int pdo_naviserver_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC);
 static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, unsigned long *len, int *caller_frees TSRMLS_DC);
 
 static int php_ns_sapi_ub_write(const char *str, uint str_length TSRMLS_DC);
-static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header, sapi_headers_struct *sapi_headers TSRMLS_DC);
+static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
+                                      sapi_header_op_enum op,
+                                      sapi_headers_struct *sapi_headers TSRMLS_DC);
+
 static int php_ns_sapi_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC);
 static int php_ns_sapi_read_post(char *buf, uint count_bytes TSRMLS_DC);
 static char *php_ns_sapi_read_cookies(TSRMLS_D);
 static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC);
-static void php_ns_sapi_log_message(char *message);
+static void php_ns_sapi_log_message(char *message TSRMLS_DC);
 static void php_ns_sapi_info(ZEND_MODULE_INFO_FUNC_ARGS);
 static int php_ns_sapi_startup(sapi_module_struct * sapi_module);
 static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn);
 
+/*
+ * defined in /usr/local/src/php-5.6.6//main/SAPI.h
+
+ */
 static sapi_module_struct naviserver_sapi_module = {
     "naviserver",
     "Naviserver",
@@ -132,7 +141,7 @@ static sapi_module_struct naviserver_sapi_module = {
 
     php_ns_sapi_ub_write,                     /* unbuffered write */
     NULL,                                     /* flush */
-    NULL,                                     /* get uid */
+    NULL,                                     /* stat */
     NULL,                                     /* getenv */
 
     php_error,                                /* error handler */
@@ -243,7 +252,7 @@ int Ns_ModuleVersion = 1;
 int Ns_ModuleInit(char *server, char *module)
 {
     int i;
-    char *path;
+    const char *path;
     Ns_Set *set;
 
     tsrm_startup(1, 1, TSRM_ERROR_LEVEL_INFO, NULL);
@@ -252,7 +261,9 @@ int Ns_ModuleInit(char *server, char *module)
 
     php_pdo_register_driver(&pdo_naviserver_driver);
 
-    // read the configuration
+    /*
+     * read the configuration
+     */
     path = Ns_ConfigGetPath(server, module, NULL);
     set = Ns_ConfigGetSection(path);
 
@@ -320,89 +331,89 @@ static int php_ns_tcl_cmd(ClientData arg, Tcl_Interp *interp, int objc, Tcl_Obj 
 
     switch (cmd) {
     case cmdEVAL:
-       if (objc < 3) {
-           Tcl_WrongNumArgs(interp, 2, objv, "script");
-           status = TCL_ERROR;
-           break;
-       }
-       zend_try {
-         if (php_request_startup(TSRMLS_C) != FAILURE) {
-             zend_eval_string(Tcl_GetString(objv[2]), NULL, "ns:php" TSRMLS_CC);
-             Tcl_AppendResult(interp, ctx.buffer, NULL);
-             php_request_shutdown(NULL);
-         }
-       } zend_end_try();
-       break;
+        if (objc < 3) {
+            Tcl_WrongNumArgs(interp, 2, objv, "script");
+            status = TCL_ERROR;
+            break;
+        }
+        zend_try {
+            if (php_request_startup(TSRMLS_C) != FAILURE) {
+                zend_eval_string(Tcl_GetString(objv[2]), NULL, "ns:php" TSRMLS_CC);
+                Tcl_AppendResult(interp, ctx.buffer, NULL);
+                php_request_shutdown(NULL);
+            }
+        } zend_end_try();
+        break;
 
     case cmdEVALFILE:
-       if (objc < 3) {
-           Tcl_WrongNumArgs(interp, 2, objv, "filename");
-           status = TCL_ERROR;
-           break;
-       }
-       memset(&file_handle, 0, sizeof(file_handle));
-       file_handle.type = ZEND_HANDLE_FILENAME;
-       file_handle.filename = Tcl_GetString(objv[2]);
-       if (php_request_startup(TSRMLS_C) != FAILURE) {
-           php_execute_script(&file_handle TSRMLS_CC);
-           Tcl_AppendResult(interp, ctx.buffer, NULL);
-           zend_try {
-             php_request_shutdown(NULL);
-           } zend_end_try();
-       }
-       break;
+        if (objc < 3) {
+            Tcl_WrongNumArgs(interp, 2, objv, "filename");
+            status = TCL_ERROR;
+            break;
+        }
+        memset(&file_handle, 0, sizeof(file_handle));
+        file_handle.type = ZEND_HANDLE_FILENAME;
+        file_handle.filename = Tcl_GetString(objv[2]);
+        if (php_request_startup(TSRMLS_C) != FAILURE) {
+            php_execute_script(&file_handle TSRMLS_CC);
+            Tcl_AppendResult(interp, ctx.buffer, NULL);
+            zend_try {
+                php_request_shutdown(NULL);
+            } zend_end_try();
+        }
+        break;
 
     case cmdCALL:
-       if (objc < 3) {
-           Tcl_WrongNumArgs(interp, 2, objv, "functionname ...");
-           status = TCL_ERROR;
-           break;
-       }
-       zend_try {
-         if (php_request_startup(TSRMLS_C) != FAILURE) {
-             MAKE_STD_ZVAL(name);
-             ZVAL_STRING(name, Tcl_GetString(objv[2]), 1);
-             call_user_function(CG(function_table), NULL, name, NULL, 0, NULL, 0);
-             Tcl_AppendResult(interp, ctx.buffer, NULL);
-             zval_ptr_dtor(&name);
-             php_request_shutdown(NULL);
-         }
-       } zend_end_try();
-       break;
+        if (objc < 3) {
+            Tcl_WrongNumArgs(interp, 2, objv, "functionname ...");
+            status = TCL_ERROR;
+            break;
+        }
+        zend_try {
+            if (php_request_startup(TSRMLS_C) != FAILURE) {
+                MAKE_STD_ZVAL(name);
+                ZVAL_STRING(name, Tcl_GetString(objv[2]), 1);
+                call_user_function(CG(function_table), NULL, name, NULL, 0, NULL, 0);
+                Tcl_AppendResult(interp, ctx.buffer, NULL);
+                zval_ptr_dtor(&name);
+                php_request_shutdown(NULL);
+            }
+        } zend_end_try();
+        break;
 
     case cmdVAR:
-       if (objc < 3) {
-           Tcl_WrongNumArgs(interp, 2, objv, "varname");
-           status = TCL_ERROR;
-           break;
-       }
-       zend_try {
-         if (php_request_startup(TSRMLS_C) != FAILURE) {
-             MAKE_STD_ZVAL(val);
-             zend_eval_string(Tcl_GetString(objv[2]), val, "ns:php" TSRMLS_CC);
-             convert_to_string_ex(&val);
-             Tcl_AppendResult(interp, val->value.str.val, NULL);
-             zval_ptr_dtor(&val);
-             php_request_shutdown(NULL);
-         }
-       } zend_end_try();
-       break;
+        if (objc < 3) {
+            Tcl_WrongNumArgs(interp, 2, objv, "varname");
+            status = TCL_ERROR;
+            break;
+        }
+        zend_try {
+            if (php_request_startup(TSRMLS_C) != FAILURE) {
+                MAKE_STD_ZVAL(val);
+                zend_eval_string(Tcl_GetString(objv[2]), val, "ns:php" TSRMLS_CC);
+                convert_to_string_ex(&val);
+                Tcl_AppendResult(interp, val->value.str.val, NULL);
+                zval_ptr_dtor(&val);
+                php_request_shutdown(NULL);
+            }
+        } zend_end_try();
+        break;
 
     case cmdVERSION:
-       Tcl_AppendResult(interp, PHP_VERSION, NULL);
-       break;
+        Tcl_AppendResult(interp, PHP_VERSION, NULL);
+        break;
     }
     ns_free(ctx.buffer);
     return status;
 }
 
-static int php_ns_tcl_init(Tcl_Interp *interp, void *arg)
+static int php_ns_tcl_init(Tcl_Interp *interp, const void *arg)
 {
-    Tcl_CreateObjCommand(interp, "ns_php", php_ns_tcl_cmd, arg, NULL);
+    Tcl_CreateObjCommand(interp, "ns_php", php_ns_tcl_cmd, (ClientData)arg, NULL);
     return TCL_OK;
 }
 
-static void ThreadArgProc(Tcl_DString *dsPtr, void *proc, void *arg)
+static void ThreadArgProc(Tcl_DString *dsPtr, Ns_ThreadProc proc, const void *arg)
 {
     Ns_GetProcInfo(dsPtr, proc, arg);
 }
@@ -449,7 +460,7 @@ PHP_FUNCTION(ns_header)
 {
     char *name;
     int nlen;
-    CONST char *result;
+    const char *result;
     Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &nlen) == FAILURE) {
@@ -467,14 +478,14 @@ PHP_FUNCTION(ns_eval)
 {
     char *name;
     int nlen;
-    CONST char *result;
+    const char *result;
     Tcl_Interp *interp = Ns_GetConnInterp(Ns_GetConn());
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &nlen) == FAILURE) {
         RETURN_FALSE;
     }
     if (Tcl_EvalEx(interp, name, nlen, 0) != TCL_OK) {
-        result = Ns_TclLogError(interp);
+        result = Ns_TclLogErrorInfo(interp, "\n(context: php eval)");
     } else {
         result = Tcl_GetStringResult(interp);
     }
@@ -490,9 +501,9 @@ PHP_FUNCTION(ns_log)
         RETURN_FALSE;
     }
     severity = !strcasecmp(level, "Error") ? Error :
-               !strcasecmp(level, "Warning") ? Warning :
-               !strcasecmp(level, "Debug") ? Debug :
-               !strcasecmp(level, "Fatal") ? Fatal : Notice;
+        !strcasecmp(level, "Warning") ? Warning :
+        !strcasecmp(level, "Debug") ? Debug :
+        !strcasecmp(level, "Fatal") ? Fatal : Notice;
     Ns_Log(severity, "%s", str);
 }
 
@@ -505,7 +516,7 @@ PHP_FUNCTION(ns_info)
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &nlen) == FAILURE) {
         RETURN_FALSE;
     }
-    static CONST char *cmds[] = {
+    static const char *cmds[] = {
         "address", "boottime", "builddate", "threads",
         "config", "home", "hostname", "locks", "log",
         "major", "minor", "name", "nsd", "pageroot", "patchlevel",
@@ -518,72 +529,72 @@ PHP_FUNCTION(ns_info)
     } opt;
 
     for (opt = 0; cmds[opt]; opt++) {
-      if (!strcmp(cmds[opt], name)) {
-          break;
-      }
+        if (!strcmp(cmds[opt], name)) {
+            break;
+        }
     }
 
     Ns_DStringInit(&ds);
 
     switch(opt) {
-     case IAddressIdx:
+    case IAddressIdx:
         result = Ns_InfoAddress();
         break;
 
-     case IBoottimeIdx:
-        Ns_DStringPrintf(&ds, "%u", Ns_InfoBootTime());
+    case IBoottimeIdx:
+        Ns_DStringPrintf(&ds, "%lu", Ns_InfoBootTime());
         result = ds.string;
         break;
 
-     case IBuilddateIdx:
+    case IBuilddateIdx:
         result = Ns_InfoBuildDate();
         break;
 
-     case IConfigIdx:
-        result = Ns_InfoConfigFile();
+    case IConfigIdx:
+        result = (char *)Ns_InfoConfigFile();
         break;
 
-     case IHomeIdx:
-        result = Ns_InfoHomePath();
+    case IHomeIdx:
+        result = (char *)Ns_InfoHomePath();
         break;
 
-     case hostINameIdx:
-        result = Ns_InfoHostname();
+    case hostINameIdx:
+        result = (char *)Ns_InfoHostname();
         break;
 
-     case ILogIdx:
-        result = Ns_InfoErrorLog();
+    case ILogIdx:
+        result = (char *)Ns_InfoErrorLog();
         break;
 
-     case IMajorIdx:
+    case IMajorIdx:
         Ns_DStringPrintf(&ds, "%d", NS_MAJOR_VERSION);
         result = ds.string;
         break;
 
-     case IMinorIdx:
+    case IMinorIdx:
         Ns_DStringPrintf(&ds, "%d", NS_MINOR_VERSION);
         result = ds.string;
         break;
 
-     case INameIdx:
+    case INameIdx:
         result = Ns_InfoServerName();
         break;
 
-     case IPageRootIdx:
-        Ns_PagePath(&ds, NULL, NULL);
+    case IPageRootIdx:
+        Ns_PagePath(&ds, "", NULL);
         result = ds.string;
         break;
 
-     case IPatchLevelIdx:
+    case IPatchLevelIdx:
         result = NS_PATCH_LEVEL;
         break;
 
-     case IPidIdx:
+    case IPidIdx:
         Ns_DStringPrintf(&ds, "%d", Ns_InfoPid());
         result = ds.string;
         break;
 
-     case IPlatformIdx:
+    case IPlatformIdx:
         result = Ns_InfoPlatform();
         break;
 
@@ -592,29 +603,29 @@ PHP_FUNCTION(ns_info)
         result = ds.string;
         break;
 
-     case ITagIdx:
+    case ITagIdx:
         result = Ns_InfoTag();
         break;
 
-     case IThreadsIdx:
-        Ns_ThreadList(&ds,ThreadArgProc);
+    case IThreadsIdx:
+        Ns_ThreadList(&ds, ThreadArgProc);
         result = ds.string;
         break;
 
-     case IUptimeIdx:
-        Ns_DStringPrintf(&ds, "%u", Ns_InfoUptime());
+    case IUptimeIdx:
+        Ns_DStringPrintf(&ds, "%ld", Ns_InfoUptime());
         result = ds.string;
         break;
 
-     case IVersionIdx:
+    case IVersionIdx:
         result = NS_VERSION;
         break;
 
-     case IWinntIdx:
+    case IWinntIdx:
 #ifdef _WIN32
         result = "1";
 #else
-	result = "0";
+        result = "0";
 #endif
         break;
 
@@ -632,25 +643,26 @@ PHP_FUNCTION(ns_conn)
     int idx;
     Ns_Conn *conn;
     Tcl_DString ds;
-    char *name, *result;
+    char *name, *dupl;
+    const char *result = NULL;
     int nlen;
 
-    static CONST char *cmds[] = {
-	 "authpassword", "authuser", "close", "content", "contentlength",
-	 "copy", "driver", "encoding", "flags", 
-	 "host", "id", "isconnected", "location", "method",
-	 "peeraddr", "peerport", "port", "protocol", "query", "request",
-         "server", "sock", "start", "status", "url", "urlc", "urlencoding",
-         "urlv", "version", 
-         0
+    static const char *cmds[] = {
+        "authpassword", "authuser", "close", "content", "contentlength",
+        /*"copy",*/ "driver", "encoding", "flags", 
+        "host", "id", "isconnected", "location", "method",
+        "peeraddr", "peerport", "port", "protocol", "query", "request",
+        "server", "sock", "start", "status", "url", "urlc", "urlencoding",
+        "urlv", "version", 
+        0
     };
     enum ISubCmdIdx {
-	 CAuthPasswordIdx, CAuthUserIdx, CCloseIdx, CContentIdx,
-	 CContentLengthIdx, CCopyIdx, CDriverIdx, CEncodingIdx, CFlagsIdx,
-	 CHostIdx, CIdIdx, CIsConnectedIdx, CLocationIdx, CMethodIdx,
-         CPeerAddrIdx, CPeerPortIdx, CPortIdx, CProtocolIdx, CQueryIdx, CRequestIdx,
-	 CServerIdx, CSockIdx, CStartIdx, CStatusIdx, CUrlIdx, CUrlcIdx, CUrlEncodingIdx,
-         CUrlvIdx, CVersionIdx, 
+        CAuthPasswordIdx, CAuthUserIdx, CCloseIdx, CContentIdx, CContentLengthIdx,
+        /* CCopyIdx,*/ CDriverIdx, CEncodingIdx, CFlagsIdx,
+        CHostIdx, CIdIdx, CIsConnectedIdx, CLocationIdx, CMethodIdx,
+        CPeerAddrIdx, CPeerPortIdx, CPortIdx, CProtocolIdx, CQueryIdx, CRequestIdx,
+        CServerIdx, CSockIdx, CStartIdx, CStatusIdx, CUrlIdx, CUrlcIdx, CUrlEncodingIdx,
+        CUrlvIdx, CVersionIdx
     } opt;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &nlen) == FAILURE) {
@@ -658,151 +670,149 @@ PHP_FUNCTION(ns_conn)
     }
 
     for (opt = 0; cmds[opt]; opt++) {
-      if (!strcmp(cmds[opt], name)) {
-          break;
-      }
+        if (!strcmp(cmds[opt], name)) {
+            break;
+        }
     }
 
     conn = Ns_GetConn();
 
     if (opt != CIsConnectedIdx && conn == NULL) {
-       RETURN_FALSE
-    }
+        RETURN_FALSE
+            }
 
     Tcl_DStringInit(&ds);
     switch(opt) {
-     case CIsConnectedIdx:
+    case CIsConnectedIdx:
         result = conn ? "true" : "false";
-	break;
-		
-     case CUrlvIdx:
-     	for (idx = 0; idx < conn->request->urlc; idx++) {
+        break;
+        
+    case CUrlvIdx:
+        for (idx = 0; idx < conn->request->urlc; idx++) {
             Ns_DStringPrintf(&ds, "%s ",conn->request->urlv[idx]);
         }
         result = ds.string;
         break;
 
-     case CAuthUserIdx:
-	result = Ns_ConnAuthUser(conn);
-	break;
-	    
-     case CAuthPasswordIdx:
-	result = Ns_ConnAuthPasswd(conn);
+    case CAuthUserIdx:
+        result = Ns_ConnAuthUser(conn);
+        break;
+        
+    case CAuthPasswordIdx:
+        result = Ns_ConnAuthPasswd(conn);
         break;
 
-     case CContentIdx:
+    case CContentIdx:
         result = Ns_ConnContent(conn);
         break;
-	    
-     case CContentLengthIdx:
-	Ns_DStringPrintf(&ds,"%d",conn->contentLength);
+        
+    case CContentLengthIdx:
+        Ns_DStringPrintf(&ds,"%" PRIuz,conn->contentLength);
         result = ds.string;
         break;
 
-     case CEncodingIdx:
-	result = (char *)Tcl_GetEncodingName(Ns_ConnGetEncoding(conn));
+    case CEncodingIdx:
+        result = Tcl_GetEncodingName(Ns_ConnGetEncoding(conn));
         break;
-	
-     case CUrlEncodingIdx:
-        result = (char *)Tcl_GetEncodingName(Ns_ConnGetUrlEncoding(conn));
+    
+    case CUrlEncodingIdx:
+        result = Tcl_GetEncodingName(Ns_ConnGetUrlEncoding(conn));
         break;
-	
-     case CPeerAddrIdx:
-	result = Ns_ConnPeer(conn);
+    
+    case CPeerAddrIdx:
+        result = Ns_ConnPeer(conn);
         break;
-	
-     case CPeerPortIdx:
+    
+    case CPeerPortIdx:
         Ns_DStringPrintf(&ds, "%d", Ns_ConnPeerPort(conn));
         result = ds.string;
         break;
 
-     case CRequestIdx:
-	result = conn->request->line;
+    case CRequestIdx:
+        result = conn->request->line;
         break;
 
-     case CMethodIdx:
-	result = conn->request->method;
-	break;
+    case CMethodIdx:
+        result = conn->request->method;
+        break;
 
-     case CProtocolIdx:
-	result = conn->request->protocol;
-	break;
+    case CProtocolIdx:
+        result = conn->request->protocol;
+        break;
 
-     case CHostIdx:
-	result = conn->request->host;
-	break;
-	
-     case CPortIdx:
-	Ns_DStringPrintf(&ds, "%d", conn->request->port);
+    case CHostIdx:
+        result = conn->request->host;
+        break;
+    
+    case CPortIdx:
+        Ns_DStringPrintf(&ds, "%d", conn->request->port);
         result = ds.string;
         break;
 
-     case CUrlIdx:
-	result = conn->request->url;
+    case CUrlIdx:
+        result = conn->request->url;
         break;
-	
-     case CQueryIdx:
-	result = conn->request->query;
-	break;
-	
-     case CUrlcIdx:
-	Ns_DStringPrintf(&ds, "%d", conn->request->urlc);
+    
+    case CQueryIdx:
+        result = conn->request->query;
+        break;
+    
+    case CUrlcIdx:
+        Ns_DStringPrintf(&ds, "%d", conn->request->urlc);
         result = ds.string;
         break;
-	
-     case CVersionIdx:
-	Ns_DStringPrintf(&ds, "%.2f", conn->request->version);
+    
+    case CVersionIdx:
+        Ns_DStringPrintf(&ds, "%.2f", conn->request->version);
         result = ds.string;
         break;
 
-     case CLocationIdx:
+    case CLocationIdx:
         Ns_ConnLocationAppend(conn, &ds);
         result = ds.string;
         break;
 
-     case CDriverIdx:
-	result = Ns_ConnDriverName(conn);
+    case CDriverIdx:
+        result = Ns_ConnDriverName(conn);
         break;
     
-     case CServerIdx:
-	result = Ns_ConnServer(conn);
+    case CServerIdx:
+        result = Ns_ConnServer(conn);
         break;
 
-     case CStatusIdx:
-	Ns_DStringPrintf(&ds, "%d", Ns_ConnResponseStatus(conn));
+    case CStatusIdx:
+        Ns_DStringPrintf(&ds, "%d", Ns_ConnResponseStatus(conn));
         result = ds.string;
         break;
 
-     case CSockIdx:
-	Ns_DStringPrintf(&ds, "%d", Ns_ConnSock(conn));
+    case CSockIdx:
+        Ns_DStringPrintf(&ds, "%d", Ns_ConnSock(conn));
         result = ds.string;
         break;
-	
-     case CIdIdx:
-	Ns_DStringPrintf(&ds, "%d", Ns_ConnId(conn));
+    
+    case CIdIdx:
+        Ns_DStringPrintf(&ds, "%" PRIiPTR, Ns_ConnId(conn));
         result = ds.string;
         break;
-	
-     case CFlagsIdx:
-	Ns_DStringPrintf(&ds, "%d", conn->flags);
-        result = ds.string;
-        break;
-
-     case CStartIdx:
-	Ns_DStringPrintf(&ds, "%ld", Ns_ConnStartTime(conn)->sec);
+    
+    case CFlagsIdx:
+        Ns_DStringPrintf(&ds, "%d", conn->flags);
         result = ds.string;
         break;
 
-     case CCloseIdx:
-	Ns_ConnClose(conn);
+    case CStartIdx:
+        Ns_DStringPrintf(&ds, "%ld", Ns_ConnStartTime(conn)->sec);
+        result = ds.string;
         break;
 
-     default:
-        result=  NULL;
+    case CCloseIdx:
+        Ns_ConnClose(conn);
+        break;
+
     }
-    result = estrdup(result != NULL ? result : "");
+    dupl = estrdup(result != NULL ? result : "");
     Ns_DStringFree(&ds);
-    RETURN_STRING((char*)result, 0);
+    RETURN_STRING(dupl, 0);
 }
 
 PHP_FUNCTION(ns_returnredirect)
@@ -994,7 +1004,9 @@ static int php_ns_sapi_ub_write(const char *str, uint len TSRMLS_DC)
 {
     ns_context *ctx = SG(server_context);
 
-    // We are called from non-connection session, add data to internal buffer 
+    /*
+     * We are called from non-connection session, add data to internal buffer 
+     */
     if (ctx->conn == NULL) {
         int size = ctx->buffer ? strlen(ctx->buffer) : 0;
         ctx->buffer = ns_realloc(ctx->buffer, size + len + 1);
@@ -1011,33 +1023,99 @@ static int php_ns_sapi_ub_write(const char *str, uint len TSRMLS_DC)
     return len;
 }
 
+static int php_nsapi_remove_header(sapi_header_struct *sapi_header TSRMLS_DC)
+{
+        char *header_name, *p;
+        ns_context *ctx = SG(server_context);
+        
+        header_name = ns_strdup(sapi_header->header);
+
+        p = strchr(header_name, ':');
+        if (p != NULL) {
+            *p = '\0';
+        }
+
+        Ns_SetIDeleteKey(Ns_ConnHeaders(ctx->conn), header_name);
+        ns_free(header_name);
+        
+        return ZEND_HASH_APPLY_KEEP;
+}
+
+
 /*
  * php_ns_sapi_header_handler() sets a HTTP reply header to be sent to the client.
  */
-
-static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header, sapi_headers_struct *sapi_headers TSRMLS_DC)
+static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
+                                      sapi_header_op_enum op,
+                                      sapi_headers_struct *sapi_headers TSRMLS_DC)
 {
+    int result = 0;
     ns_context *ctx = SG(server_context);
-    char *p, *name;
+    char *p, *name = NULL;
 
-    name = sapi_header->header;
-    p = strchr(name, ':');
+    /*
+     * When there is no connection available, we cannot work on the header
+     * fields.
+     */
+    if (ctx->conn == NULL) {
+        Ns_Log(Notice, "nsphp: no connection available; header request ignored");
+        return 0;
+    }
 
-    if (ctx->conn != NULL && p != NULL) {
-        *p++ = '\0';
-        while (*p == ' ') p++;
+    /*
+     * In the following cases, split the provided header string into tag name
+     * and value in order to perform update operations on the header fields.
+     * We duplicate the string, but we have to free it (when name != NULL).
+     */
+   
+    switch(op) {
+    case SAPI_HEADER_DELETE: 
+    case SAPI_HEADER_ADD:
+    case SAPI_HEADER_REPLACE:
+        name = ns_strdup(sapi_header->header);
+        p = strchr(name, ':');
+        if (p == NULL) {
+            return 0;
+        }
+        *p++ =  '\0';
+        break;
 
-        if (!strcasecmp(name, "Content-Length")) {
-            Ns_ConnSetLengthHeader(ctx->conn, atoll(p));
-        } else
-        if (sapi_header->replace == 0 || !strcasecmp(name, "Set-Cookie")) {
+    default:
+        break;
+    }
+    
+    switch(op) {
+    case SAPI_HEADER_DELETE_ALL:
+        zend_llist_apply(&sapi_headers->headers, (llist_apply_func_t) php_nsapi_remove_header TSRMLS_CC);
+        break;
+
+    case SAPI_HEADER_DELETE: {
+        Ns_SetIDeleteKey(Ns_ConnHeaders(ctx->conn), name);
+        break;
+    }
+
+    case SAPI_HEADER_ADD:
+    case SAPI_HEADER_REPLACE:
+        if (strcasecmp(name, "Content-Length") == 0) {
+            Ns_ConnSetLengthHeader(ctx->conn, atoll(p), 0);
+        } else if (op == SAPI_HEADER_ADD || (strcasecmp(name, "Set-Cookie") == 0)) {
             Ns_ConnSetHeaders(ctx->conn, name, p);
         } else {
             Ns_ConnUpdateHeaders(ctx->conn, name, p);
         }
+
+        result = SAPI_HEADER_ADD;
+        break;
+        
+    default:
+        break;
     }
-    efree(sapi_header->header);
-    return 0;
+
+    if (name != NULL) {
+        ns_free(name);
+    }
+    
+    return result;
 }
 
 /*
@@ -1063,7 +1141,7 @@ static int php_ns_sapi_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
 
 static int php_ns_sapi_read_post(char *buf, uint count_bytes TSRMLS_DC)
 {
-    char *data;
+    const char *data;
     uint max_read;
     ns_context *ctx = SG(server_context);
 
@@ -1094,7 +1172,7 @@ static char *php_ns_sapi_read_cookies(TSRMLS_D)
     return NULL;
 }
 
-static void php_ns_sapi_log_message(char *message)
+static void php_ns_sapi_log_message(char *message TSRMLS_DC)
 {
     Ns_Log(Error, "nsphp: %s", message);
 }
@@ -1179,12 +1257,14 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
     Ns_DStringPrintf(&ds, "HTTP/%1.1f", ctx->conn->request->version);
     ADD_STRING("SERVER_PROTOCOL", ds.string);
 
-    ADD_STRING("REQUEST_METHOD", ctx->conn->request->method);
+    ADD_STRING("REQUEST_METHOD", (char *)ctx->conn->request->method);
 
     if (Ns_ConnHost(ctx->conn)) {
         Ns_DStringSetLength(&ds, 0);
         value = Ns_ConnLocationAppend(ctx->conn, &ds);
-        // Strip protocol and port from the name
+        /*
+         * Strip protocol and port from the name
+         */
         if ((p = strstr(value, "://"))) {
             value = p + 3;
             if ((p = strchr(value, ':'))) {
@@ -1199,10 +1279,10 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
 
     ADD_STRING("SERVER_BUILDDATE", Ns_InfoBuildDate());
 
-    ADD_STRING("REMOTE_ADDR", Ns_ConnPeer(ctx->conn));
+    ADD_STRING("REMOTE_ADDR", (char *)Ns_ConnPeer(ctx->conn));
 
     Ns_DStringSetLength(&ds, 0);
-    Ns_DStringPrintf(&ds, "%d", Ns_InfoBootTime());
+    Ns_DStringPrintf(&ds, "%lu", Ns_InfoBootTime());
     ADD_STRING("SERVER_BOOTTIME", ds.string);
 
     Ns_DStringSetLength(&ds, 0);
@@ -1214,7 +1294,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
     ADD_STRING("SERVER_PORT", ds.string);
 
     Ns_DStringSetLength(&ds, 0);
-    Ns_DStringPrintf(&ds, "%d", Ns_ConnContentLength(ctx->conn));
+    Ns_DStringPrintf(&ds, "%" PRIuz, Ns_ConnContentLength(ctx->conn));
     ADD_STRING("CONTENT_LENGTH", ds.string);
 
     Ns_DStringSetLength(&ds, 0);
@@ -1262,7 +1342,7 @@ static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
     SG(request_info).path_translated = ds.string;
 
     SG(request_info).query_string = conn->request->query;
-    SG(request_info).request_uri = conn->request->url;
+    SG(request_info).request_uri = (char *)conn->request->url;
     SG(request_info).request_method = conn->request->method;
     SG(request_info).proto_num = conn->request->version > 1.0 ? 1001 : 1000;
     SG(request_info).content_length = Ns_ConnContentLength(conn);
@@ -1282,11 +1362,11 @@ static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
     file_handle.opened_path = NULL;
 
     zend_first_try {
-       php_request_startup(TSRMLS_C);
-       php_execute_script(&file_handle TSRMLS_CC) ? NS_OK : NS_ERROR;
-       php_request_shutdown(NULL);
+        php_request_startup(TSRMLS_C);
+        php_execute_script(&file_handle TSRMLS_CC) ? NS_OK : NS_ERROR;
+        php_request_shutdown(NULL);
     } zend_catch {
-       Ns_Log(Error, "nsphp: error in processing %s", file_handle.filename);;
+        Ns_Log(Error, "nsphp: error in processing %s", file_handle.filename);;
     } zend_end_try();
 
     if (!(conn->flags & NS_CONN_SENTHDRS)) {
@@ -1331,7 +1411,7 @@ static int pdo_naviserver_stmt_execute(pdo_stmt_t *stmt TSRMLS_DC)
     return 1;
 }
 
-static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt,	enum pdo_fetch_orientation ori, long offset TSRMLS_DC)
+static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt, enum pdo_fetch_orientation ori, long offset TSRMLS_DC)
 {
     ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
 
@@ -1354,7 +1434,9 @@ static int pdo_naviserver_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC)
     cols[colno].param_type = PDO_PARAM_STR;
     cols[colno].name = estrdup(db->db->row->fields[colno].name);
     cols[colno].namelen = strlen(cols[colno].name);
-    // We do not know column maxwidth, let's use size of the column value
+    /* 
+     * We do not know column maxwidth, let's use size of the column value
+     */
     cols[colno].maxlen = db->db->row->fields[colno].value ? strlen(db->db->row->fields[colno].value) : 0;
     cols[colno].precision = 0;
 
@@ -1455,7 +1537,7 @@ static int pdo_naviserver_handle_factory(pdo_dbh_t *dbh, zval *driver_options TS
 {
     ns_pdo_handle *db = ns_malloc(sizeof(ns_pdo_handle));
 
-    db->db = Ns_DbPoolTimedGetHandle((char *)dbh->data_source, -1);
+    db->db = Ns_DbPoolTimedGetHandle((char *)dbh->data_source, NULL);
     if (db->db == NULL) {
         ns_free(db);
         zend_throw_exception_ex(php_pdo_get_exception(), 0 TSRMLS_CC, "Unable to get handle for %s", dbh->data_source);
@@ -1471,3 +1553,11 @@ static int pdo_naviserver_handle_factory(pdo_dbh_t *dbh, zval *driver_options TS
     return 1;
 }
 
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * fill-column: 78
+ * indent-tabs-mode: nil
+ * End:
+ */

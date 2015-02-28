@@ -16,7 +16,7 @@ MODNAME          = nsphp
 
 MOD              = $(MODNAME).so
 MODOBJS          = $(MODNAME).o
-MODLIBS          = -lphp5 -L$(PHP_LIBDIR) $(PHP_LIBS) 
+MODLIBS          = -lphp5 -lnsdb -L$(PHP_LIBDIR) $(PHP_LIBS) 
 
 include $(NAVISERVER)/include/Makefile.module
 
@@ -26,7 +26,7 @@ MODLIBS		+= $(CCRFLAG):$(PHP_LIBDIR)
 endif
 
 
-NS_TEST_CFG		= -c -d -t tests/config.tcl
+NS_TEST_CFG		= -c -d -t tests/config.tcl -u nsadmin
 NS_TEST_ALL		= all.tcl $(TCLTESTARGS)
 LD_LIBRARY_PATH	= LD_LIBRARY_PATH="./::$$LD_LIBRARY_PATH"
 
@@ -61,7 +61,10 @@ dist: all
 	tar czf $(MODNAME)-$(VERSION).tgz $(MODNAME)-$(VERSION)
 
 PHP_HOME = $(NAVISERVER)/php
-PHP_VER = php-5.2.6
+PHP_VER = php-5.6.6
+
+PHP_extraflags=--with-openssl --with-ldap --with-curl --with-gd=/usr 
+PHP_extraflags=
 
 php:
 	if [ ! -e /tmp/$(PHP_VER).tar.gz ]; then \
@@ -81,12 +84,8 @@ php:
                     --enable-sockets \
                     --enable-soap \
                     --enable-xml \
-                    --with-openssl \
                     --with-zlib \
-                    --with-curl \
-                    --with-gd=/usr \
                     --enable-gd-native-ttf \
-                    --with-ldap \
                     --with-xmlrpc \
                     --with-pear \
                     --with-pcre-regex \
@@ -97,7 +96,8 @@ php:
                     --with-pdo-pgsql \
                     --with-mysql \
                     --with-pdo-mysql \
-                    --enable-maintainer-zts && \
+                    --enable-maintainer-zts \
+			$(PHP_extraflags) && \
         make install && \
         cd .. && \
         make install PHP_CONFIG=$(PHP_HOME)/bin/php-config

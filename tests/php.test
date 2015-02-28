@@ -32,17 +32,17 @@
 package require tcltest 2.2
 namespace import -force ::tcltest::*
 
-eval ::tcltest::configure $argv
+::tcltest::configure {*}$argv
 
 
 test file-1.0 {php_testpage} -body {
     nstest_http -getbody 1 -getheaders {content-type} \
         GET /test.php
-} -result "200 text/html {test page\n}"
+} -result "200 {text/html; charset=UTF-8} {test page\n}"
 
 test file-1.1 {php_testpage} -body {
     nstest_http -getbody 1 -getheaders {content-type} \
         -setheaders {Cookie test=1} GET /test.php
-} -result "304 text/html"
+} -result "304 {text/html; charset=UTF-8}"
 
 cleanupTests

@@ -3,7 +3,7 @@ Naviserver PHP module
 1) To compile PHP as a module for Naviserver, you need:
 
 - installed Naviserver 4.99 or later
-- PHP 5.x or later
+- PHP 5.x or later (tested with 5.6.6)
 
 It has been tested with Drupal, RoundCube webmail, MailBee webmail, 
 Mambo, Horder/IMP, MediaWiki, PmWiki
@@ -11,26 +11,39 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
 2) Compiling PHP
 
-  The version of PHP you are using will need at least the following
-  options enabled:
+  This modules requires a PHP with ZTS and pthreads support.
+  If the version of PHP installed on your system does not have TZS enabled,
+  you have to compile PHP locally. When one tries to compile the module
+  with a PHP installation without ZTS support, the compilation
+  will output the error message
 
-  $ ./configure --enable-embed=shared --enable-pdo
+     #error Naviserver module is only useable in thread-safe mode
 
-  in case default PHP installation does not have embed and ZTS support,
-  PHP needs to be recompiled. Theree is automated target in the Makefile
-  to make this process easy
+  The Makefile of this module provides support for building
+  PHP with ZTS support. Note, that PHP has a very long list of
+  build-options and you might have to adjust this list by
+  shortening or extending the configure options according
+  to your application needs.
 
-  $ make php
+  PHP can be build from the nsphp directory via
 
-  It will download and build PHP as shared library and install it under
-  /usr/local/ns/php and compile nsphp against it.
+      $ make php
+
+  This command will download and build PHP as shared library and
+  install it under /usr/local/ns/php and compile nsphp against it.
+  
+  Note that you might have to install some more packages on your
+  system in case some of the configured libraries for PHP are
+  missing. You can also fix such issues by shortening the configure
+  options.
+
 
 3) Building nsphp
 
   When building the nsphp module you must tell it where the naviserver
   and php you would like to use are installed:
 
-  make NAVISERVER=/usr/local/ns PHP_CONFIG=/usr/local/php-5.2.6/bin/php-config
+  make NAVISERVER=/usr/local/ns PHP_CONFIG=/usr/local/ns/php/bin/php-config
 
 
 4) Changing nsd.tcl
@@ -40,7 +53,7 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
     Then enable the PHP module:
 
     ns_section	"ns/server/${server}/modules"
-    ns_param    nsphp		${home}/bin/libphp5.so
+    ns_param    nsphp		${home}/bin/libphp.so
 
   b) New section
 
@@ -54,7 +67,6 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
 
 5) Calling PHP scripts from Tcl
-
 
   ns_php version
 
@@ -114,7 +126,7 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
   ns_headers();
 
-    Returns input headrs as an array
+    Returns input headers as an array
 
   ns_outputheaders();
 
@@ -159,12 +171,12 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
 7) PDO driver for ns_db
 
-This module implemnts internal PDO driver which uses the same ns_db handles and pools as
-the rest of Naviserver. 
+  This module implements internal PDO driver which uses the same ns_db handles and pools as
+  the rest of Naviserver. 
 
-To allocate DB handle use:
+  To allocate DB handle use:
 
-$db = new PDO("naviserver:poolname");
+     $db = new PDO("naviserver:poolname");
 
   where naviserver is PDO driver name and poolname is any pool defined
   in nsd.tcl. After that is works the same way as other PHP PDO drivers.
