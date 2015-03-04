@@ -77,6 +77,7 @@ php:
 	./configure --prefix=$(PHP_HOME) \
                     --mandir=$(PHP_HOME)/man \
                     --enable-debug \
+                    --enable-mbstring \
                     --enable-embed=shared \
                     --with-config-file-path=$(PHP_HOME)/etc \
                     --disable-posix \

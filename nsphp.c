@@ -276,7 +276,9 @@ int Ns_ModuleInit(char *server, char *module)
             Ns_RegisterRequest(server, "GET", value, php_ns_sapi_request_handler, NULL, 0, 0);
             Ns_RegisterRequest(server, "POST", value, php_ns_sapi_request_handler, NULL, 0, 0);
             Ns_RegisterRequest(server, "HEAD", value, php_ns_sapi_request_handler, NULL, 0, 0);
-        }
+            Ns_RegisterRequest(server, "PUT", value, php_ns_sapi_request_handler, NULL, 0, 0);
+            Ns_RegisterRequest(server, "DELETE", value, php_ns_sapi_request_handler, NULL, 0, 0);
+       }
     }
 
     Ns_TclRegisterTrace(server, php_ns_tcl_init, 0, NS_TCL_TRACE_CREATE);
