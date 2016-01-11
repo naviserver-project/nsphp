@@ -61,7 +61,7 @@ dist: all
 	tar czf $(MODNAME)-$(VERSION).tgz $(MODNAME)-$(VERSION)
 
 PHP_HOME = $(NAVISERVER)/php
-PHP_VER = php-5.6.6
+PHP_VER = php-5.6.17
 
 PHP_extraflags=--with-openssl --with-ldap --with-curl --with-gd=/usr 
 PHP_extraflags=
@@ -91,7 +91,6 @@ php:
                     --with-pear \
                     --with-pcre-regex \
                     --with-gettext \
-                    --with-ttf \
                     --enable-bcmath \
                     --with-pgsql \
                     --with-pdo-pgsql \

@@ -264,7 +264,7 @@ int Ns_ModuleInit(char *server, char *module)
     /*
      * read the configuration
      */
-    path = Ns_ConfigGetPath(server, module, NULL);
+    path = Ns_ConfigGetPath(server, module, (char *)0);
     set = Ns_ConfigGetSection(path);
 
     for (i = 0; set && i < Ns_SetSize(set); i++) {
@@ -422,13 +422,14 @@ static void ThreadArgProc(Tcl_DString *dsPtr, Ns_ThreadProc proc, const void *ar
 
 PHP_FUNCTION(ns_headers)
 {
-    int i;
-    Ns_Set *hdrs;
     Ns_Conn *conn = Ns_GetConn();
 
     if (conn) {
-        hdrs = Ns_ConnHeaders(conn);
+        Ns_Set *hdrs = Ns_ConnHeaders(conn);
+        
         if (hdrs != NULL) {
+            int i;
+                
             array_init(return_value);
             for (i = 0; i < Ns_SetSize(hdrs); i++) {
                 char *key = Ns_SetKey(hdrs, i);
@@ -441,17 +442,19 @@ PHP_FUNCTION(ns_headers)
 
 PHP_FUNCTION(ns_outputheaders)
 {
-    int i;
-    Ns_Set *hdrs;
     Ns_Conn *conn = Ns_GetConn();
 
     if (conn) {
-        hdrs = Ns_ConnOutputHeaders(conn);
+        Ns_Set *hdrs = Ns_ConnOutputHeaders(conn);
+        
         if (hdrs != NULL) {
+            int i;
+            
             array_init(return_value);
             for (i = 0; i < Ns_SetSize(hdrs); i++) {
                 char *key = Ns_SetKey(hdrs, i);
                 char *value = Ns_SetValue(hdrs, i);
+                
                 add_assoc_string(return_value, key, value, 1);
             }
         }
@@ -460,16 +463,15 @@ PHP_FUNCTION(ns_outputheaders)
 
 PHP_FUNCTION(ns_header)
 {
-    char *name;
-    int nlen;
-    const char *result;
+    char    *name;
+    int      nlen;
     Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &nlen) == FAILURE) {
         RETURN_FALSE;
     }
     if (conn) {
-        result = Ns_SetIGetValue(Ns_ConnHeaders(conn), name, NULL);
+        const char *result = Ns_SetIGetValue(Ns_ConnHeaders(conn), name, NULL);
         if (result != NULL) {
             RETURN_STRING((char*)result, 1);
         }
@@ -511,7 +513,8 @@ PHP_FUNCTION(ns_log)
 
 PHP_FUNCTION(ns_info)
 {
-    char *name, *result;
+    char *name;
+    const char *result;
     int nlen;
     Ns_DString ds;
 
@@ -583,7 +586,7 @@ PHP_FUNCTION(ns_info)
         break;
 
     case IPageRootIdx:
-        Ns_PagePath(&ds, "", NULL);
+        Ns_PagePath(&ds, "", (char *)0);
         result = ds.string;
         break;
 
@@ -864,14 +867,14 @@ PHP_FUNCTION(ns_queryexists)
 {
     char *name;
     int nlen;
-    Ns_Set *form;
     Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &nlen) == FAILURE) {
         RETURN_FALSE;
     }
     if (conn != NULL) {
-        form = Ns_ConnGetQuery(conn);
+         Ns_Set *form = Ns_ConnGetQuery(conn);
+         
         if (form != NULL) {
             RETURN_LONG(Ns_SetIFind(form, name) > -1);
         }
@@ -883,14 +886,14 @@ PHP_FUNCTION(ns_queryget)
 {
     char *name;
     int nlen;
-    Ns_Set *form;
     Ns_Conn *conn = Ns_GetConn();
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &nlen) == FAILURE) {
         RETURN_FALSE;
     }
     if (conn != NULL) {
-        form = Ns_ConnGetQuery(conn);
+        Ns_Set *form = Ns_ConnGetQuery(conn);
+        
         if (form != NULL) {
             name = Ns_SetIGet(form, name);
             if (name != NULL) {
@@ -902,13 +905,14 @@ PHP_FUNCTION(ns_queryget)
 
 PHP_FUNCTION(ns_querygetall)
 {
-    int i;
-    Ns_Set *form;
     Ns_Conn *conn = Ns_GetConn();
 
     if (conn != NULL) {
-        form = Ns_ConnGetQuery(conn);
+        Ns_Set *form = Ns_ConnGetQuery(conn);
+        
         if (form != NULL) {
+            int i;
+            
             array_init(return_value);
             for (i = 0; i < form->size; i++) {
                 char *key = Ns_SetKey(form, i);
@@ -1227,7 +1231,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
 {
     int i;
     Ns_DString ds;
-    char *p, *key, *value, c;
+    char *p, *value, c;
     ns_context *ctx = SG(server_context);
 
     if (ctx->conn == NULL) {
@@ -1236,7 +1240,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
 
     Ns_DStringInit(&ds);
     for (i = 0; i < Ns_SetSize(ctx->conn->headers); i++) {
-        key = Ns_SetKey(ctx->conn->headers, i);
+        char *key = Ns_SetKey(ctx->conn->headers, i);
         value = Ns_SetValue(ctx->conn->headers, i);
 
         Ns_DStringSetLength(&ds, 0);
@@ -1279,7 +1283,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
         ADD_STRING("QUERY_STRING", ctx->conn->request->query);
     }
 
-    ADD_STRING("SERVER_BUILDDATE", Ns_InfoBuildDate());
+    ADD_STRING("SERVER_BUILDDATE", (char *)Ns_InfoBuildDate());
 
     ADD_STRING("REMOTE_ADDR", (char *)Ns_ConnPeer(ctx->conn));
 
@@ -1313,7 +1317,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
     ADD_STRING("GATEWAY_INTERFACE", "CGI/1.1");
 
     Ns_DStringSetLength(&ds, 0);
-    ADD_STRING("DOCUMENT_ROOT", Ns_PagePath(&ds, Ns_ConnServer(ctx->conn), NULL));
+    ADD_STRING("DOCUMENT_ROOT", Ns_PagePath(&ds, Ns_ConnServer(ctx->conn), (char *)0));
 
     Ns_DStringFree(&ds);
 }
