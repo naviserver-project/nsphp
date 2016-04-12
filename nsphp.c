@@ -231,7 +231,8 @@ static struct pdo_stmt_methods pdo_naviserver_stmt_methods = {
     NULL
 };
 
-int Ns_ModuleVersion = 1;
+NS_EXPORT int Ns_ModuleVersion = 1;
+NS_EXPORT Ns_ModuleInitProc Ns_ModuleInit;
 
 /*
  *----------------------------------------------------------------------
