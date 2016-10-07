@@ -250,7 +250,7 @@ NS_EXPORT Ns_ModuleInitProc Ns_ModuleInit;
  *----------------------------------------------------------------------
  */
 
-int Ns_ModuleInit(char *server, char *module)
+int Ns_ModuleInit(const char *server, const char *module)
 {
     int i;
     const char *path;
