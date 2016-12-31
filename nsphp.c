@@ -1297,7 +1297,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
     ADD_STRING("REMOTE_PORT", ds.string);
 
     Ns_DStringSetLength(&ds, 0);
-    Ns_DStringPrintf(&ds, "%d", Ns_ConnPort(ctx->conn));
+    Ns_DStringPrintf(&ds, "%hu", Ns_ConnPort(ctx->conn));
     ADD_STRING("SERVER_PORT", ds.string);
 
     Ns_DStringSetLength(&ds, 0);
