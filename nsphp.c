@@ -694,8 +694,8 @@ PHP_FUNCTION(ns_conn)
         break;
         
     case CUrlvIdx:
-        for (idx = 0; idx < conn->request->urlc; idx++) {
-            Ns_DStringPrintf(&ds, "%s ",conn->request->urlv[idx]);
+        for (idx = 0; idx < conn->request.urlc; idx++) {
+            Ns_DStringPrintf(&ds, "%s ",conn->request.urlv[idx]);
         }
         result = ds.string;
         break;
@@ -735,41 +735,41 @@ PHP_FUNCTION(ns_conn)
         break;
 
     case CRequestIdx:
-        result = conn->request->line;
+        result = conn->request.line;
         break;
 
     case CMethodIdx:
-        result = conn->request->method;
+        result = conn->request.method;
         break;
 
     case CProtocolIdx:
-        result = conn->request->protocol;
+        result = conn->request.protocol;
         break;
 
     case CHostIdx:
-        result = conn->request->host;
+        result = conn->request.host;
         break;
     
     case CPortIdx:
-        Ns_DStringPrintf(&ds, "%d", conn->request->port);
+        Ns_DStringPrintf(&ds, "%d", conn->request.port);
         result = ds.string;
         break;
 
     case CUrlIdx:
-        result = conn->request->url;
+        result = conn->request.url;
         break;
     
     case CQueryIdx:
-        result = conn->request->query;
+        result = conn->request.query;
         break;
     
     case CUrlcIdx:
-        Ns_DStringPrintf(&ds, "%d", conn->request->urlc);
+        Ns_DStringPrintf(&ds, "%d", conn->request.urlc);
         result = ds.string;
         break;
     
     case CVersionIdx:
-        Ns_DStringPrintf(&ds, "%.2f", conn->request->version);
+        Ns_DStringPrintf(&ds, "%.2f", conn->request.version);
         result = ds.string;
         break;
 
@@ -1210,7 +1210,7 @@ static void php_ns_sapi_info(ZEND_MODULE_INFO_FUNC_ARGS)
 
     php_info_print_table_start();
     php_info_print_table_colspan_header(2, "HTTP Request Headers");
-    php_info_print_table_row(2, "HTTP Request", ctx->conn->request->line);
+    php_info_print_table_row(2, "HTTP Request", ctx->conn->request.line);
     for (i = 0; i < Ns_SetSize(ctx->conn->headers); i++) {
         php_info_print_table_row(2, Ns_SetKey(ctx->conn->headers, i), Ns_SetValue(ctx->conn->headers, i));
     }
@@ -1261,10 +1261,10 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
     ADD_STRING("SERVER_SOFTWARE", ds.string);
 
     Ns_DStringSetLength(&ds, 0);
-    Ns_DStringPrintf(&ds, "HTTP/%1.1f", ctx->conn->request->version);
+    Ns_DStringPrintf(&ds, "HTTP/%1.1f", ctx->conn->request.version);
     ADD_STRING("SERVER_PROTOCOL", ds.string);
 
-    ADD_STRING("REQUEST_METHOD", (char *)ctx->conn->request->method);
+    ADD_STRING("REQUEST_METHOD", (char *)ctx->conn->request.method);
 
     if (Ns_ConnHost(ctx->conn)) {
         Ns_DStringSetLength(&ds, 0);
@@ -1280,8 +1280,8 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
         }
         ADD_STRING("SERVER_NAME", value);
     }
-    if (ctx->conn->request->query) {
-        ADD_STRING("QUERY_STRING", ctx->conn->request->query);
+    if (ctx->conn->request.query) {
+        ADD_STRING("QUERY_STRING", ctx->conn->request.query);
     }
 
     ADD_STRING("SERVER_BUILDDATE", (char *)Ns_InfoBuildDate());
@@ -1306,8 +1306,8 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
 
     Ns_DStringSetLength(&ds, 0);
     Ns_DStringPrintf(&ds, "%s", SG(request_info).request_uri);
-    if (ctx->conn->request->query) {
-        Ns_DStringPrintf(&ds, "?%s", ctx->conn->request->query);
+    if (ctx->conn->request.query) {
+        Ns_DStringPrintf(&ds, "?%s", ctx->conn->request.query);
     }
     ADD_STRING("REQUEST_URI", ds.string);
 
@@ -1345,13 +1345,13 @@ static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
     TSRMLS_FETCH();
 
     Ns_DStringInit(&ds);
-    Ns_UrlToFile(&ds, Ns_ConnServer(conn), conn->request->url);
+    Ns_UrlToFile(&ds, Ns_ConnServer(conn), conn->request.url);
     SG(request_info).path_translated = ds.string;
 
-    SG(request_info).query_string = conn->request->query;
-    SG(request_info).request_uri = (char *)conn->request->url;
-    SG(request_info).request_method = conn->request->method;
-    SG(request_info).proto_num = conn->request->version > 1.0 ? 1001 : 1000;
+    SG(request_info).query_string = conn->request.query;
+    SG(request_info).request_uri = (char *)conn->request.url;
+    SG(request_info).request_method = conn->request.method;
+    SG(request_info).proto_num = conn->request.version > 1.0 ? 1001 : 1000;
     SG(request_info).content_length = Ns_ConnContentLength(conn);
     SG(request_info).content_type = Ns_SetIGet(conn->headers, "Content-Type");
     SG(request_info).auth_user = STRDUP(Ns_ConnAuthUser(conn));
