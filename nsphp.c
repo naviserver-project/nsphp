@@ -50,7 +50,7 @@
 #endif
 
 #define ADD_STRING(name,buf)   php_register_variable(name, buf, track_vars_array TSRMLS_CC)
-#define STRDUP(s)              (s != NULL ? estrdup(s) : NULL) 
+#define STRDUP(s)              (s != NULL ? estrdup(s) : NULL)
 
 typedef struct {
     char *buffer;
@@ -431,10 +431,10 @@ PHP_FUNCTION(ns_headers)
 
     if (conn) {
         Ns_Set *hdrs = Ns_ConnHeaders(conn);
-        
+
         if (hdrs != NULL) {
             size_t i;
-                
+
             array_init(return_value);
             for (i = 0; i < Ns_SetSize(hdrs); i++) {
                 char *key   = Ns_SetKey(hdrs, i);
@@ -452,15 +452,15 @@ PHP_FUNCTION(ns_outputheaders)
 
     if (conn) {
         Ns_Set *hdrs = Ns_ConnOutputHeaders(conn);
-        
+
         if (hdrs != NULL) {
             size_t i;
-            
+
             array_init(return_value);
             for (i = 0; i < Ns_SetSize(hdrs); i++) {
                 char *key = Ns_SetKey(hdrs, i);
                 char *value = Ns_SetValue(hdrs, i);
-                
+
                 add_assoc_string(return_value, key, value, 1);
             }
         }
@@ -660,11 +660,11 @@ PHP_FUNCTION(ns_conn)
 
     static const char *cmds[] = {
         "authpassword", "authuser", "close", "content", "contentlength",
-        /*"copy",*/ "driver", "encoding", "flags", 
+        /*"copy",*/ "driver", "encoding", "flags",
         "host", "id", "isconnected", "location", "method",
         "peeraddr", "peerport", "port", "protocol", "query", "request",
         "server", "sock", "start", "status", "url", "urlc", "urlencoding",
-        "urlv", "version", 
+        "urlv", "version",
         0
     };
     enum ISubCmdIdx {
@@ -697,7 +697,7 @@ PHP_FUNCTION(ns_conn)
     case CIsConnectedIdx:
         result = conn ? "true" : "false";
         break;
-        
+
     case CUrlvIdx:
         Ns_DStringPrintf(&ds, "%s ",conn->request.urlv);
         result = ds.string;
@@ -706,7 +706,7 @@ PHP_FUNCTION(ns_conn)
     case CAuthUserIdx:
         result = Ns_ConnAuthUser(conn);
         break;
-        
+
     case CAuthPasswordIdx:
         result = Ns_ConnAuthPasswd(conn);
         break;
@@ -714,7 +714,7 @@ PHP_FUNCTION(ns_conn)
     case CContentIdx:
         result = Ns_ConnContent(conn);
         break;
-        
+
     case CContentLengthIdx:
         Ns_DStringPrintf(&ds,"%" PRIuz,conn->contentLength);
         result = ds.string;
@@ -723,17 +723,17 @@ PHP_FUNCTION(ns_conn)
     case CEncodingIdx:
         result = Tcl_GetEncodingName(Ns_ConnGetEncoding(conn));
         break;
-    
+
     case CUrlEncodingIdx:
         result = Tcl_GetEncodingName(Ns_ConnGetUrlEncoding(conn));
         break;
-    
+
     case CPeerAddrIdx:
         result = Ns_ConnPeer(conn);
         // TIP version should use
         // result = Ns_ConnPeerAddr(conn);
         break;
-    
+
     case CPeerPortIdx:
         Ns_DStringPrintf(&ds, "%d", Ns_ConnPeerPort(conn));
         result = ds.string;
@@ -754,7 +754,7 @@ PHP_FUNCTION(ns_conn)
     case CHostIdx:
         result = Ns_ConnHost(conn);
         break;
-    
+
     case CPortIdx:
         Ns_DStringPrintf(&ds, "%hu", Ns_ConnPort(conn));
         result = ds.string;
@@ -763,16 +763,16 @@ PHP_FUNCTION(ns_conn)
     case CUrlIdx:
         result = conn->request.url;
         break;
-    
+
     case CQueryIdx:
         result = conn->request.query;
         break;
-    
+
     case CUrlcIdx:
         Ns_DStringPrintf(&ds, "%d", conn->request.urlc);
         result = ds.string;
         break;
-    
+
     case CVersionIdx:
         Ns_DStringPrintf(&ds, "%.2f", conn->request.version);
         result = ds.string;
@@ -786,7 +786,7 @@ PHP_FUNCTION(ns_conn)
     case CDriverIdx:
         result = Ns_ConnDriverName(conn);
         break;
-    
+
     case CServerIdx:
         result = Ns_ConnServer(conn);
         break;
@@ -800,12 +800,12 @@ PHP_FUNCTION(ns_conn)
         Ns_DStringPrintf(&ds, "%d", Ns_ConnSock(conn));
         result = ds.string;
         break;
-    
+
     case CIdIdx:
         Ns_DStringPrintf(&ds, "%" PRIiPTR, Ns_ConnId(conn));
         result = ds.string;
         break;
-    
+
     case CFlagsIdx:
         Ns_DStringPrintf(&ds, "%d", conn->flags);
         result = ds.string;
@@ -880,7 +880,7 @@ PHP_FUNCTION(ns_queryexists)
     }
     if (conn != NULL) {
          Ns_Set *form = Ns_ConnGetQuery(conn);
-         
+
         if (form != NULL) {
             RETURN_LONG(Ns_SetIFind(form, name) > -1);
         }
@@ -899,7 +899,7 @@ PHP_FUNCTION(ns_queryget)
     }
     if (conn != NULL) {
         Ns_Set *form = Ns_ConnGetQuery(conn);
-        
+
         if (form != NULL) {
             name = Ns_SetIGet(form, name);
             if (name != NULL) {
@@ -915,15 +915,15 @@ PHP_FUNCTION(ns_querygetall)
 
     if (conn != NULL) {
         Ns_Set *form = Ns_ConnGetQuery(conn);
-        
+
         if (form != NULL) {
             size_t i;
-            
+
             array_init(return_value);
             for (i = 0; i < form->size; i++) {
                 char *key = Ns_SetKey(form, i);
                 char *value = Ns_SetValue(form, i);
-                
+
                 add_assoc_string(return_value, key, value, 1);
             }
         }
@@ -1018,7 +1018,7 @@ static int php_ns_sapi_ub_write(const char *str, uint len TSRMLS_DC)
     ns_context *ctx = SG(server_context);
 
     /*
-     * We are called from non-connection session, add data to internal buffer 
+     * We are called from non-connection session, add data to internal buffer
      */
     if (ctx->conn == NULL) {
         int size = ctx->buffer ? strlen(ctx->buffer) : 0;
@@ -1040,7 +1040,7 @@ static int php_nsapi_remove_header(sapi_header_struct *sapi_header TSRMLS_DC)
 {
         char *header_name, *p;
         ns_context *ctx = SG(server_context);
-        
+
         header_name = ns_strdup(sapi_header->header);
 
         p = strchr(header_name, ':');
@@ -1050,7 +1050,7 @@ static int php_nsapi_remove_header(sapi_header_struct *sapi_header TSRMLS_DC)
 
         Ns_SetIDeleteKey(Ns_ConnHeaders(ctx->conn), header_name);
         ns_free(header_name);
-        
+
         return ZEND_HASH_APPLY_KEEP;
 }
 
@@ -1080,9 +1080,9 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
      * and value in order to perform update operations on the header fields.
      * We duplicate the string, but we have to free it (when name != NULL).
      */
-   
+
     switch(op) {
-    case SAPI_HEADER_DELETE: 
+    case SAPI_HEADER_DELETE:
     case SAPI_HEADER_ADD:
     case SAPI_HEADER_REPLACE:
         name = ns_strdup(sapi_header->header);
@@ -1096,7 +1096,7 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
     default:
         break;
     }
-    
+
     switch(op) {
     case SAPI_HEADER_DELETE_ALL:
         zend_llist_apply(&sapi_headers->headers, (llist_apply_func_t) php_nsapi_remove_header TSRMLS_CC);
@@ -1119,7 +1119,7 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
 
         result = SAPI_HEADER_ADD;
         break;
-        
+
     default:
         break;
     }
@@ -1127,7 +1127,7 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
     if (name != NULL) {
         ns_free(name);
     }
-    
+
     return result;
 }
 
@@ -1448,7 +1448,7 @@ static int pdo_naviserver_stmt_describe(pdo_stmt_t *stmt, int colno TSRMLS_DC)
     cols[colno].param_type = PDO_PARAM_STR;
     cols[colno].name = estrdup(db->db->row->fields[colno].name);
     cols[colno].namelen = strlen(cols[colno].name);
-    /* 
+    /*
      * We do not know column maxwidth, let's use size of the column value
      */
     cols[colno].maxlen = db->db->row->fields[colno].value ? strlen(db->db->row->fields[colno].value) : 0;
