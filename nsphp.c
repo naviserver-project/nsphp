@@ -123,7 +123,8 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC);
 static void php_ns_sapi_log_message(char *message TSRMLS_DC);
 static void php_ns_sapi_info(ZEND_MODULE_INFO_FUNC_ARGS);
 static int php_ns_sapi_startup(sapi_module_struct * sapi_module);
-static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn);
+
+static Ns_OpProc php_ns_sapi_request_handler;
 
 /*
  * defined in /usr/local/src/php-5.6.6//main/SAPI.h
@@ -131,7 +132,7 @@ static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn);
  */
 static sapi_module_struct naviserver_sapi_module = {
     "naviserver",
-    "Naviserver",
+    "NaviServer",
 
     php_ns_sapi_startup,                      /* startup */
     php_module_shutdown_wrapper,              /* shutdown */
@@ -181,7 +182,7 @@ static zend_function_entry naviserver_functions[] = {
     PHP_FE(nsv_incr,         NULL)
     PHP_FE(nsv_unset,        NULL)
     PHP_FE(nsv_append,       NULL)
-    {NULL, NULL, NULL}
+    {NULL, NULL, NULL, 0, 0}
 };
 
 static zend_module_entry php_naviserver_module = {
@@ -215,6 +216,9 @@ static struct pdo_dbh_methods pdo_naviserver_methods = {
     pdo_naviserver_handle_fetch_error,  /* fetch error */
     NULL,                               /* get attr */
     NULL,                               /* check liveness */
+    NULL,                               /* get_driver_methods */
+    NULL,                               /* persistent_shutdown */
+    NULL                                /* in_transaction */
 };
 
 static struct pdo_stmt_methods pdo_naviserver_stmt_methods = {
@@ -252,7 +256,7 @@ NS_EXPORT Ns_ModuleInitProc Ns_ModuleInit;
 
 int Ns_ModuleInit(const char *server, const char *module)
 {
-    int i;
+    size_t i;
     const char *path;
     Ns_Set *set;
 
@@ -304,7 +308,7 @@ int Ns_ModuleInit(const char *server, const char *module)
  *----------------------------------------------------------------------
  */
 
-static int php_ns_tcl_cmd(ClientData arg, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
+static int php_ns_tcl_cmd(ClientData UNUSED(clientdata), Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     zval *name, *val;
     int status, cmd;
@@ -314,7 +318,7 @@ static int php_ns_tcl_cmd(ClientData arg, Tcl_Interp *interp, int objc, Tcl_Obj 
     enum {
         cmdCALL, cmdEVAL, cmdEVALFILE, cmdVAR, cmdVERSION
     };
-    static CONST char *subcmd[] = {
+    static const char *subcmd[] = {
         "call", "eval", "evalfile", "var", "version",
         NULL
     };
@@ -341,7 +345,7 @@ static int php_ns_tcl_cmd(ClientData arg, Tcl_Interp *interp, int objc, Tcl_Obj 
         }
         zend_try {
             if (php_request_startup(TSRMLS_C) != FAILURE) {
-                zend_eval_string(Tcl_GetString(objv[2]), NULL, "ns:php" TSRMLS_CC);
+                zend_eval_string(Tcl_GetString(objv[2]), NULL, (char*)"ns:php" TSRMLS_CC);
                 Tcl_AppendResult(interp, ctx.buffer, NULL);
                 php_request_shutdown(NULL);
             }
@@ -393,7 +397,7 @@ static int php_ns_tcl_cmd(ClientData arg, Tcl_Interp *interp, int objc, Tcl_Obj 
         zend_try {
             if (php_request_startup(TSRMLS_C) != FAILURE) {
                 MAKE_STD_ZVAL(val);
-                zend_eval_string(Tcl_GetString(objv[2]), val, "ns:php" TSRMLS_CC);
+                zend_eval_string(Tcl_GetString(objv[2]), val, (char*)"ns:php" TSRMLS_CC);
                 convert_to_string_ex(&val);
                 Tcl_AppendResult(interp, val->value.str.val, NULL);
                 zval_ptr_dtor(&val);
@@ -429,12 +433,13 @@ PHP_FUNCTION(ns_headers)
         Ns_Set *hdrs = Ns_ConnHeaders(conn);
         
         if (hdrs != NULL) {
-            int i;
+            size_t i;
                 
             array_init(return_value);
             for (i = 0; i < Ns_SetSize(hdrs); i++) {
-                char *key = Ns_SetKey(hdrs, i);
+                char *key   = Ns_SetKey(hdrs, i);
                 char *value = Ns_SetValue(hdrs, i);
+
                 add_assoc_string(return_value, key, value, 1);
             }
         }
@@ -449,7 +454,7 @@ PHP_FUNCTION(ns_outputheaders)
         Ns_Set *hdrs = Ns_ConnOutputHeaders(conn);
         
         if (hdrs != NULL) {
-            int i;
+            size_t i;
             
             array_init(return_value);
             for (i = 0; i < Ns_SetSize(hdrs); i++) {
@@ -694,9 +699,7 @@ PHP_FUNCTION(ns_conn)
         break;
         
     case CUrlvIdx:
-        for (idx = 0; idx < conn->request.urlc; idx++) {
-            Ns_DStringPrintf(&ds, "%s ",conn->request.urlv[idx]);
-        }
+        Ns_DStringPrintf(&ds, "%s ",conn->request.urlv);
         result = ds.string;
         break;
 
@@ -727,6 +730,8 @@ PHP_FUNCTION(ns_conn)
     
     case CPeerAddrIdx:
         result = Ns_ConnPeer(conn);
+        // TIP version should use
+        // result = Ns_ConnPeerAddr(conn);
         break;
     
     case CPeerPortIdx:
@@ -747,11 +752,11 @@ PHP_FUNCTION(ns_conn)
         break;
 
     case CHostIdx:
-        result = conn->request.host;
+        result = Ns_ConnHost(conn);
         break;
     
     case CPortIdx:
-        Ns_DStringPrintf(&ds, "%d", conn->request.port);
+        Ns_DStringPrintf(&ds, "%hu", Ns_ConnPort(conn));
         result = ds.string;
         break;
 
@@ -912,12 +917,13 @@ PHP_FUNCTION(ns_querygetall)
         Ns_Set *form = Ns_ConnGetQuery(conn);
         
         if (form != NULL) {
-            int i;
+            size_t i;
             
             array_init(return_value);
             for (i = 0; i < form->size; i++) {
                 char *key = Ns_SetKey(form, i);
                 char *value = Ns_SetValue(form, i);
+                
                 add_assoc_string(return_value, key, value, 1);
             }
         }
@@ -1286,6 +1292,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array TSRMLS_DC)
 
     ADD_STRING("SERVER_BUILDDATE", (char *)Ns_InfoBuildDate());
 
+    // TIP VERSION SHOULD USE: .... Ns_ConnPeerAddr(ctx->conn) ...
     ADD_STRING("REMOTE_ADDR", (char *)Ns_ConnPeer(ctx->conn));
 
     Ns_DStringSetLength(&ds, 0);
@@ -1336,7 +1343,7 @@ static int php_ns_sapi_startup(sapi_module_struct * sapi_module)
  * The php_ns_request_handler() is called per request and handles everything for one request.
  */
 
-static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
+static int php_ns_sapi_request_handler(const void *context, Ns_Conn * conn)
 {
     Ns_DString ds;
     ns_context ctx;
@@ -1370,7 +1377,7 @@ static int php_ns_sapi_request_handler(void *context, Ns_Conn * conn)
 
     zend_first_try {
         php_request_startup(TSRMLS_C);
-        php_execute_script(&file_handle TSRMLS_CC) ? NS_OK : NS_ERROR;
+        php_execute_script(&file_handle TSRMLS_CC);
         php_request_shutdown(NULL);
     } zend_catch {
         Ns_Log(Error, "nsphp: error in processing %s", file_handle.filename);;

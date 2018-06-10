@@ -4,7 +4,9 @@ VERSION          = 0.1
 NAVISERVER       = /usr/local/ns
 NSD              = $(NAVISERVER)/bin/nsd
 
-PHP_CONFIG       = php-config
+#PHP_CONFIG       = php-config
+PHP_CONFIG       = $(NAVISERVER)/php/bin/php-config
+
 PHP_LIBS         = $(shell $(PHP_CONFIG) --libs)
 PHP_LIBDIR       = $(shell $(PHP_CONFIG) --prefix)/lib
 PHP_INCDIRS      = $(shell $(PHP_CONFIG) --includes)
@@ -26,8 +28,8 @@ MODLIBS		+= $(CCRFLAG):$(PHP_LIBDIR)
 endif
 
 
-NS_TEST_CFG		= -c -d -t tests/config.tcl -u nsadmin
-NS_TEST_ALL		= all.tcl $(TCLTESTARGS)
+NS_TEST_CFG	= -c -d -t tests/config.tcl -u nsadmin
+NS_TEST_ALL	= all.tcl $(TCLTESTARGS)
 LD_LIBRARY_PATH	= LD_LIBRARY_PATH="./::$$LD_LIBRARY_PATH"
 
 test: all
@@ -61,9 +63,13 @@ dist: all
 	tar czf $(MODNAME)-$(VERSION).tgz $(MODNAME)-$(VERSION)
 
 PHP_HOME = $(NAVISERVER)/php
-PHP_VER = php-5.6.17
+PHP_VER = php-5.6.36
 
-PHP_extraflags=--with-openssl --with-ldap --with-curl --with-gd=/usr 
+PHP_extraflags=--with-openssl --with-ldap --with-curl --with-gd=/usr
+
+# on MacOS, you might use
+#PHP_extraflags=--with-gettext=/opt/local --with-pgsql=/opt/local/bin --with-pdo-pgsql=/opt/local/bin
+
 PHP_extraflags=
 
 php:
