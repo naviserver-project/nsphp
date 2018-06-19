@@ -67,7 +67,7 @@ PHP_VER = php-5.6.36
 
 PHP_extraflags=--with-openssl --with-ldap --with-curl --with-gd=/usr
 
-# on MacOS, you might use
+# on macOS, you might use
 #PHP_extraflags=--with-gettext=/opt/local --with-pgsql=/opt/local/bin --with-pdo-pgsql=/opt/local/bin
 
 PHP_extraflags=
