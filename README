@@ -3,7 +3,7 @@ Naviserver PHP module
 1) To compile PHP as a module for Naviserver, you need:
 
 - installed Naviserver 4.99 or later
-- PHP 5.x or later (tested with 5.6.6)
+- PHP 5.x or later (tested with 5.6.36)
 
 It has been tested with Drupal, RoundCube webmail, MailBee webmail, 
 Mambo, Horder/IMP, MediaWiki, PmWiki
