@@ -11,11 +11,13 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
 2) Compiling PHP
 
-  This modules requires a PHP with ZTS and pthreads support.
-  If the version of PHP installed on your system does not have TZS enabled,
-  you have to compile PHP locally. When one tries to compile the module
-  with a PHP installation without ZTS support, the compilation
-  will output the error message
+  This modules requires a PHP with ZTS (Zend Thread Safety) and
+  pthreads support.  If the version of PHP installed on your system
+  does not have TZS enabled, you have to compile PHP locally. For unix
+  systems, it is uncommon to get precompiled PHP insallations with ZTS
+  enabled (see [1]). When one tries to compile the nsphp module with a
+  PHP installation without ZTS support, the compilation will output
+  the error message
 
      #error Naviserver module is only useable in thread-safe mode
 
@@ -36,6 +38,8 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
   system in case some of the configured libraries for PHP are
   missing. You can also fix such issues by shortening the configure
   options.
+
+  [1] https://www.slideshare.net/jpauli/php-and-threads-zts
 
 
 3) Building nsphp
