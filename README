@@ -84,7 +84,7 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 The following Tcl commands can be used to call PHP or or get
 information from PHP:
 
-  * ns_php version
+  * `ns_php version`
 
      Return PHP version
 
