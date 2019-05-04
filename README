@@ -1,15 +1,18 @@
-Naviserver PHP module
+nsphp: a PHP module for NaviServer
+==================================
 
-1) To compile PHP as a module for Naviserver, you need:
+1) To compile PHP as a module for NaviServer, you need:
+-------------------------------------------------------
 
-- installed Naviserver 4.99 or later
-- PHP 5.x or later (tested with 5.6.36)
+- installed NaviServer 4.99 or later
+- PHP 7.x or later (tested with 7.3.5)
 
-It has been tested with Drupal, RoundCube webmail, MailBee webmail, 
+It has been tested with Drupal, RoundCube webmail, MailBee webmail,
 Mambo, Horder/IMP, MediaWiki, PmWiki
 
 
 2) Compiling PHP
+----------------
 
   This modules requires a PHP with ZTS (Zend Thread Safety) and
   pthreads support.  If the version of PHP installed on your system
@@ -19,10 +22,10 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
   PHP installation without ZTS support, the compilation will output
   the error message
 
-     #error Naviserver module is only useable in thread-safe mode
+     #error Naviserver module is only usable in thread-safe mode
 
   The Makefile of this module provides support for building
-  PHP with ZTS support. Note, that PHP has a very long list of
+  PHP with ZTS support. Note that PHP has a very long list of
   build-options and you might have to adjust this list by
   shortening or extending the configure options according
   to your application needs.
@@ -33,44 +36,47 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
   This command will download and build PHP as shared library and
   install it under /usr/local/ns/php and compile nsphp against it.
-  
+
   Note that you might have to install some more packages on your
   system in case some of the configured libraries for PHP are
   missing. You can also fix such issues by shortening the configure
-  options.
+  options. In case, more package should be included in PHP, consider
+  adding more options to the PHP_extraflags in the Makefile.
 
   [1] https://www.slideshare.net/jpauli/php-and-threads-zts
 
 
-3) Building nsphp
+3) Building the NaviServer nsphp modules
+----------------------------------------
 
-  When building the nsphp module you must tell it where the naviserver
+  When building the nsphp module you must tell it where the NaviServer
   and php you would like to use are installed:
 
-  make NAVISERVER=/usr/local/ns PHP_CONFIG=/usr/local/ns/php/bin/php-config
+      make NAVISERVER=/usr/local/ns PHP_CONFIG=/usr/local/ns/php/bin/php-config
 
 
-4) Changing nsd.tcl
+4) Changing the NaviServer configuration file
+---------------------------------------------
 
-  a) Enabling PHP
+### a) Enabling PHP
 
-    Then enable the PHP module:
+  Then enable the PHP module:
 
     ns_section	"ns/server/${server}/modules"
-    ns_param    nsphp		${home}/bin/libphp.so
+    ns_param    nsphp	${home}/bin/libphp.so
 
-  b) New section
+### b) New section
 
-    Add a new section to pass options to PHP (required):
-    The 'map' command will cause Naviserver to pass all requests to *.php to
-    the PHP module (can be specified multiple times).  Example:
+  Add a new section to pass options to PHP (required): The 'map'
+  command will cause NaviServer to pass all requests to *.php to the
+  PHP module (can be specified multiple times).  Example:
 
     ns_section	"ns/server/${server}/module/nsphp"
-    ns_param 	map 		*.php
-    ns_param 	map 		*.php4
+    ns_param	map	*.php
 
 
 5) Calling PHP scripts from Tcl
+-------------------------------
 
   ns_php version
 
@@ -82,11 +88,7 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
   ns_php evalfile filename
 
-     Evaluate spacified PHP file
-
-  ns_php call function
-
-     Call PHP function and return result
+     Evaluate specified PHP file
 
   ns_php var varname
 
@@ -95,6 +97,7 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
 
 6) Native PHP functions
+-----------------------
 
 
   ns_header(name);
@@ -112,21 +115,21 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
   ns_info(name);
 
-     Returns information, name can be one of:
-        address, boottime, builddate, threads,
-        config, home, hostname, locks, log,
-        major, minor, name, nsd, pageroot, patchlevel,
-        pid, platform, tag, uptime, version, winnt
+    Returns information, name can be one of:
+	address, boottime, builddate, threads,
+	config, home, hostname, locks, log,
+	major, minor, name, nsd, pageroot, patchlevel,
+	pid, platform, tag, uptime, version, winnt
 
   ns_conn(name);
 
     Returns info about current connection, name can be one of:
-        authpassword, authuser, close, content, contentlength,
+	authpassword, authuser, close, content, contentlength,
 	copy, driver, encoding, flags,
 	host, id, isconnected, location, method,
 	peeraddr, peerport, port, protocol, query, request,
-        server, sock, start, status, url, urlc, urlencoding,
-        urlv, version,
+	server, sock, start, status, url, urlc, urlencoding,
+	urlv, version,
 
   ns_headers();
 
@@ -168,22 +171,24 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
   nsv_exists(array, key)
   nsv_unset(array, key);
 
-    Interface to NSV arrays of the Naviserver, array is name of the array, all
+    Interface to NSV arrays of the NaviServer, array is name of the array, all
     functions except last 2 will create array if it does not exists. Values in NSV arrays
     can be shared with Tcl and other connections.
 
 
 7) PDO driver for ns_db
+-----------------------
 
   This module implements internal PDO driver which uses the same ns_db handles and pools as
-  the rest of Naviserver. 
+  the rest of NaviServer.
 
   To allocate DB handle use:
 
      $db = new PDO("naviserver:poolname");
 
-  where naviserver is PDO driver name and poolname is any pool defined
-  in nsd.tcl. After that is works the same way as other PHP PDO drivers.
+  where "naviserver" is PDO driver name and "poolname" is any pool defined
+  in the NaviServer configuration file (e.g. nsd.tcl). After that is works
+  the same way as other PHP PDO drivers.
 
   The limitations are:
      - all values are strings

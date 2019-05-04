@@ -1,24 +1,27 @@
 
-VERSION          = 0.1
+VERSION          = 0.2
 
 NAVISERVER       = /usr/local/ns
 NSD              = $(NAVISERVER)/bin/nsd
 
-#PHP_CONFIG       = php-config
+PHP_HOME         = $(NAVISERVER)/php
+
+PHP_VER          = php-7.3.5
+PHP_LIBRARY      = -lphp7
+
 PHP_CONFIG       = $(NAVISERVER)/php/bin/php-config
 
 PHP_LIBS         = $(shell $(PHP_CONFIG) --libs)
 PHP_LIBDIR       = $(shell $(PHP_CONFIG) --prefix)/lib
 PHP_INCDIRS      = $(shell $(PHP_CONFIG) --includes)
 
-CFLAGS           += $(PHP_INCDIRS)
-
-
 MODNAME          = nsphp
 
 MOD              = $(MODNAME).so
 MODOBJS          = $(MODNAME).o
-MODLIBS          = -lphp5 -lnsdb -L$(PHP_LIBDIR) $(PHP_LIBS) 
+MODLIBS          = $(PHP_LIBRARY) -lnsdb -L$(PHP_LIBDIR) $(PHP_LIBS)
+
+CFLAGS           += $(PHP_INCDIRS)
 
 include $(NAVISERVER)/include/Makefile.module
 
@@ -62,19 +65,19 @@ dist: all
 	$(CP) $(SRCS) $(EXTRA) $(MODNAME)-$(VERSION)
 	tar czf $(MODNAME)-$(VERSION).tgz $(MODNAME)-$(VERSION)
 
-PHP_HOME = $(NAVISERVER)/php
-PHP_VER = php-5.6.36
-
-PHP_extraflags=--with-openssl --with-ldap --with-curl --with-gd=/usr
-
-# on macOS, you might use
-#PHP_extraflags=--with-gettext=/opt/local --with-pgsql=/opt/local/bin --with-pdo-pgsql=/opt/local/bin
-
+#
+# Adding extra flags for build step of PHP
+#
+PHP_extraflags=--with-ldap --with-curl --with-gd=/usr
 PHP_extraflags=
+
+# On macOS, you might use
+# PHP_extraflags=--with-gettext=/opt/local --with-pgsql=/opt/local/bin --with-pdo-pgsql=/opt/local/bin
+
 
 php:
 	if [ ! -e /tmp/$(PHP_VER).tar.gz ]; then \
-          wget -c -O /tmp/$(PHP_VER).tar.gz http://www.php.net/distributions/$(PHP_VER).tar.gz; \
+          wget -c -O /tmp/$(PHP_VER).tar.gz https://www.php.net/distributions/$(PHP_VER).tar.gz; \
         fi
 	if [ ! -e $(PHP_VER) ]; then \
           tar -xzf /tmp/$(PHP_VER).tar.gz; \
@@ -91,8 +94,8 @@ php:
                     --enable-sockets \
                     --enable-soap \
                     --enable-xml \
+		    --enable-intl \
                     --with-zlib \
-                    --enable-gd-native-ttf \
                     --with-xmlrpc \
                     --with-pear \
                     --with-pcre-regex \
@@ -100,10 +103,11 @@ php:
                     --enable-bcmath \
                     --with-pgsql \
                     --with-pdo-pgsql \
-                    --with-mysql \
+                    --with-mysqli \
+		    --with-openssl \
                     --with-pdo-mysql \
                     --enable-maintainer-zts \
 			$(PHP_extraflags) && \
-        make install && \
+        make && make install && \
         cd .. && \
         make install PHP_CONFIG=$(PHP_HOME)/bin/php-config
