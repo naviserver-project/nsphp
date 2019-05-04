@@ -88,15 +88,15 @@ information from PHP:
 
      Return PHP version
 
-  * ns_php eval string
+  * `ns_php eval` string
 
      Evaluate PHP expression and return result
 
-  * ns_php evalfile filename
+  * `ns_php evalfile` filename
 
      Evaluate specified PHP file
 
-  * ns_php var varname
+  * `ns_php var` varname
 
      Returns value of the PHP variable
 
@@ -105,21 +105,22 @@ information from PHP:
 6) Native PHP functions
 -----------------------
 
+The following PHP function can be used to call into Tcl and NaviServer:
 
-  ns_header(name);
+  * `ns_header(name);`
 
      Returns HTTP header
 
-  ns_eval(Tcl_script);
+  * `ns_eval(Tcl_script);`
 
      Evaluate Tcl code from PHP script and return result as string
 
-  ns_log(severity, string);
+  * `ns_log(severity, string);`
 
      Put string in the server log, severity is one of
      'Notice', 'Warning', 'Error', 'Debug', 'Fatal'
 
-  ns_info(name);
+  * `ns_info(name);`
 
     Returns information, name can be one of:
 	address, boottime, builddate, threads,
@@ -127,7 +128,7 @@ information from PHP:
 	major, minor, name, nsd, pageroot, patchlevel,
 	pid, platform, tag, uptime, version, winnt
 
-  ns_conn(name);
+  * `ns_conn(name);`
 
     Returns info about current connection, name can be one of:
 	authpassword, authuser, close, content, contentlength,
@@ -137,45 +138,46 @@ information from PHP:
 	server, sock, start, status, url, urlc, urlencoding,
 	urlv, version,
 
-  ns_headers();
+  * `ns_headers();' 
 
     Returns input headers as an array
 
-  ns_outputheaders();
+  * `ns_outputheaders();`
 
     Returns output headers as an array
 
 
-  ns_returnredirect(url);
+  * `ns_returnredirect(url);' 
 
     Performs HTTP redirection
 
 
-  ns_returndata(status, type, data);
-  ns_returnfile(status, type, file);
+ 
+ * `ns_returndata(status, type, data);'
+  'ns_returnfile(status, type, file);' 
 
     Return data or file contents, status is HTTP status like 200, type
     is content type like text/html
 
 
-  ns_queryexists name
+ * 'ns_queryexists name'
 
     Returns 1 if query parameter exists in the request
 
-  ns_queryget name
+ * 'ns_queryget name' 
 
     Returns value of the query parameter
 
-  ns_querygetall
+ * 'ns_querygetall' 
 
     Returns all query parameters as an array
 
-  nsv_get(array, key);
-  nsv_set(array, key, value);
-  nsv_incr(array, key, count);
-  nsv_append(array, key, value);
-  nsv_exists(array, key)
-  nsv_unset(array, key);
+ * 'nsv_get(array, key);'
+  'nsv_set(array, key, value);'
+  'nsv_incr(array, key, count);'
+  'nsv_append(array, key, value);'
+  'nsv_exists(array, key);'
+  'nsv_unset(array, key);'
 
     Interface to NSV arrays of the NaviServer, array is name of the array, all
     functions except last 2 will create array if it does not exists. Values in NSV arrays
