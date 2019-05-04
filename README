@@ -146,38 +146,35 @@ The following PHP function can be used to call into Tcl and NaviServer:
 
     Returns output headers as an array
 
-
   * `ns_returnredirect(url);' 
 
     Performs HTTP redirection
-
-
  
- * `ns_returndata(status, type, data);'
-  'ns_returnfile(status, type, file);' 
+ * `ns_returndata(status, type, data);`
+ * `ns_returnfile(status, type, file);`
 
     Return data or file contents, status is HTTP status like 200, type
     is content type like text/html
 
 
- * 'ns_queryexists name'
+ * `ns_queryexists(name);`
 
     Returns 1 if query parameter exists in the request
 
- * 'ns_queryget name' 
+ * `ns_queryget(name);` 
 
     Returns value of the query parameter
 
- * 'ns_querygetall' 
+ * `ns_querygetall();` 
 
     Returns all query parameters as an array
 
- * 'nsv_get(array, key);'
-  'nsv_set(array, key, value);'
-  'nsv_incr(array, key, count);'
-  'nsv_append(array, key, value);'
-  'nsv_exists(array, key);'
-  'nsv_unset(array, key);'
+ * `nsv_get(array, key);`
+ * `nsv_set(array, key, value);`
+ * `nsv_incr(array, key, count);`
+ * `nsv_append(array, key, value);`
+ * `nsv_exists(array, key);`
+ * `nsv_unset(array, key);`
 
     Interface to NSV arrays of the NaviServer, array is name of the array, all
     functions except last 2 will create array if it does not exists. Values in NSV arrays
