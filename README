@@ -78,7 +78,7 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
     ns_param	map	*.php
 
 
-5) Calling PHP scripts from Tcl
+5) Calling PHP Scripts from Tcl
 -------------------------------
 
 The following Tcl commands can be used to call PHP or or get
@@ -138,7 +138,7 @@ The following PHP function can be used to call into Tcl and NaviServer:
 	server, sock, start, status, url, urlc, urlencoding,
 	urlv, version,
 
-  * `ns_headers();' 
+  * `ns_headers();`
 
     Returns input headers as an array
 
@@ -146,7 +146,7 @@ The following PHP function can be used to call into Tcl and NaviServer:
 
     Returns output headers as an array
 
-  * `ns_returnredirect(url);' 
+  * `ns_returnredirect(url);`
 
     Performs HTTP redirection
  
