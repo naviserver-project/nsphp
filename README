@@ -60,16 +60,19 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 
 ### a) Enabling PHP
 
-  Then enable the PHP module:
+  To enable the nsphp module in the configuration file,
+  add the following the load the module to the "modules"
+  section of the server.
 
     ns_section	"ns/server/${server}/modules"
     ns_param    nsphp	${home}/bin/libphp.so
 
-### b) New section
+### b) Configure the nsphp modules
 
-  Add a new section to pass options to PHP (required): The 'map'
-  command will cause NaviServer to pass all requests to *.php to the
-  PHP module (can be specified multiple times).  Example:
+  To configure nsphp, add a new section like the following: The 'map'
+  command will cause NaviServer to pass all requests for files ending
+  with *.php to nsphp. (can be specified multiple times).
+  Example:
 
     ns_section	"ns/server/${server}/module/nsphp"
     ns_param	map	*.php
@@ -78,19 +81,22 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
 5) Calling PHP scripts from Tcl
 -------------------------------
 
-  ns_php version
+The following Tcl commands can be used to call PHP or or get
+information from PHP:
+
+  * ns_php version
 
      Return PHP version
 
-  ns_php eval string
+  * ns_php eval string
 
      Evaluate PHP expression and return result
 
-  ns_php evalfile filename
+  * ns_php evalfile filename
 
      Evaluate specified PHP file
 
-  ns_php var varname
+  * ns_php var varname
 
      Returns value of the PHP variable
 
