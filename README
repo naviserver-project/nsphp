@@ -181,8 +181,8 @@ The following PHP function can be used to call into Tcl and NaviServer:
     can be shared with Tcl and other connections.
 
 
-7) PDO driver for ns_db
------------------------
+7) PDO driver for `ns_db`
+-------------------------
 
   This module implements internal PDO driver which uses the same ns_db handles and pools as
   the rest of NaviServer.
@@ -196,5 +196,5 @@ The following PHP function can be used to call into Tcl and NaviServer:
   the same way as other PHP PDO drivers.
 
   The limitations are:
-     - all values are strings
-     - no native bind parameters, it uses PHP/PDO bind emulation
+ * all values are strings
+ * no native bind parameters, it uses PHP/PDO bind emulation
