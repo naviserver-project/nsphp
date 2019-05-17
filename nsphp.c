@@ -285,7 +285,6 @@ int Ns_ModuleInit(const char *server, const char *module)
     const char *path;
     Ns_Set     *set;
 
-    fprintf(stderr, "Ns_ModuleInit <%s> <%s>\n", server, module);
     ZEND_TSRMLS_CACHE_UPDATE();
 
     tsrm_startup(1, 1, TSRM_ERROR_LEVEL_INFO, NULL);
