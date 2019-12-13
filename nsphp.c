@@ -335,7 +335,7 @@ int Ns_ModuleInit(const char *server, const char *module)
  *      Fresh Tcl_Obj
  *
  * Side effects:
- *      memory allcation
+ *      memory allocation
  *
  *----------------------------------------------------------------------
  */

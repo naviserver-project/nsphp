@@ -61,7 +61,7 @@ proc nstest_http {args} {
     }
 
 	#
-	# Force network line ending symantics.
+	# Force network line ending semantics.
 	#
 
     fconfigure $rfd -translation crlf -blocking 0
