@@ -342,7 +342,7 @@ int Ns_ModuleInit(const char *server, const char *module)
 
 static Tcl_Obj*
 ZvalToObj(zval *zvPtr) {
-    Tcl_Obj *result;
+    Tcl_Obj *result = TCL_OK;
 
     /* fprintf(stderr, "zval type %d\n", Z_TYPE_P(zvPtr));*/
     if (Z_TYPE_P(zvPtr) == IS_LONG) {
