@@ -40,25 +40,25 @@ if {[ns_config test listenport] ne ""} {
 
 
 test file-1.0 {php_testpage} -body {
-    nstest_http -getbody 1 -getheaders {content-type} \
+    nstest::http -getbody 1 -getheaders {content-type} \
         GET /test.php
-} -result "200 {text/html; charset=UTF-8} {test page\n}"
+} -returnCodes {ok error} -result "200 {text/html; charset=UTF-8} {test page\n}"
 
 test file-1.1 {php_testpage} -body {
-    nstest_http -getbody 1 -getheaders {content-type} \
+    nstest::http -getbody 1 -getheaders {content-type} \
         -setheaders {Cookie test=1} GET /test.php
 } -result "304 {text/html; charset=UTF-8}"
 
 test file-1.2 {php access server info} -body {
-    nstest_http -getbody 1 GET /server.php
+    nstest::http -getbody 1 GET /server.php
 } -match glob -result "200 {*NaviServer*server.php}"
 
 test file-1.3 {php access global vars} -body {
-    nstest_http -getbody 1 GET /globals.php
+    nstest::http -getbody 1 GET /globals.php
 } -match glob -result "200 {100*}"
 
 test file-1.4 {php calls Tcl} -body {
-    nstest_http -getbody 1 GET /calltcl.php?x=4711
+    nstest::http -getbody 1 GET /calltcl.php?x=4711
 } -match glob -result "200 { ns_info(name) NaviServer *(server) test ns_conn(url) /calltcl.php * /calltcl.php *4711*User-Agent*NaviServer*NaviServer*4.99 }"
 
 
@@ -67,7 +67,7 @@ test tclpage-1.0 {tclpage: php version} -setup {
         ns_return 200 text/plain [ns_php version]
     }
 } -body {
-    nstest_http -http 1.1 -getbody 1 GET /tclpage
+    nstest::http -http 1.1 -getbody 1 GET /tclpage
 } -cleanup {
     ns_unregister_op GET /tclpage
 } -match glob -result "200 7*"
@@ -80,7 +80,7 @@ test tclpage-1.1 {tclpage: PHP evals} -setup {
         ns_return 200 text/plain $_
     }
 } -body {
-    nstest_http -getbody 1 GET /tclpage
+    nstest::http -getbody 1 GET /tclpage
 } -cleanup {
     ns_unregister_op GET /tclpage
 } -result "200 {10 2}"
@@ -93,7 +93,7 @@ test tclpage-1.2 {tclpage: PHP function} -setup {
         ns_return 200 text/plain $_
     }
 } -body {
-    nstest_http -getbody 1 GET /tclpage
+    nstest::http -getbody 1 GET /tclpage
 } -cleanup {
     ns_unregister_op GET /tclpage
 } -result "200 {10 2}"
