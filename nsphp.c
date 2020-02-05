@@ -519,7 +519,7 @@ static int php_ns_tcl_init(Tcl_Interp *interp, const void *arg)
 
 static void ThreadArgProc(Tcl_DString *dsPtr, Ns_ThreadProc proc, const void *arg)
 {
-    Ns_GetProcInfo(dsPtr, proc, arg);
+    Ns_GetProcInfo(dsPtr, (ns_funcptr_t)proc, arg);
 }
 
 PHP_FUNCTION(ns_headers)
@@ -1184,7 +1184,7 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
         Ns_Log(Notice, "nsphp: no connection available; header request ignored");
 
     } else {
-        char *p, *name = NULL;
+        char *p = NULL, *name = NULL;
 
         /*
          * In the following cases, split the provided header string into tag name
@@ -1465,14 +1465,17 @@ static int php_ns_sapi_request_handler(const void *context, Ns_Conn *conn)
 {
     Ns_DString       ds;
     ns_context       ctx;
-    zend_file_handle file_handle = {0};
+    zend_file_handle file_handle;
     void *tsrm_ls_cache = tsrm_get_ls_cache();
+
 
     if (tsrm_ls_cache == NULL) {
         (void)ts_resource(0);
         ZEND_TSRMLS_CACHE_UPDATE();
         Ns_Log(Notice, "nsphp: refresh tsrm_ls_cache");
     }
+
+    memset(&file_handle, 0, sizeof(zend_file_handle));
 
     Ns_DStringInit(&ds);
     Ns_UrlToFile(&ds, Ns_ConnServer(conn), conn->request.url);
