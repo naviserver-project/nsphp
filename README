@@ -65,7 +65,7 @@ Mambo, Horder/IMP, MediaWiki, PmWiki
   section of the server.
 
     ns_section	"ns/server/${server}/modules"
-    ns_param    nsphp	${home}/bin/libphp.so
+    ns_param    nsphp	${home}/bin/nsphp.so
 
 ### b) Configure the nsphp modules
 
