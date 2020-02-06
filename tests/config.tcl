@@ -66,5 +66,5 @@ ns_param   defaultserver   test
 
 ns_section "ns/server/test/module/nsphp"
 ns_param   map             *.php
-ns_param   map             *.php4
+#ns_param   map             *.php4
 
