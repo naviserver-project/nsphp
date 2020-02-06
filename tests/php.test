@@ -73,7 +73,11 @@ test tclpage-1.0 {tclpage: php version} -setup {
 } -match glob -result "200 7*"
 
 
-test tclpage-1.1 {tclpage: PHP evals} -setup {
+test tclpage-1.1 {
+    tclpage: Tcl calls PHP function
+    Since we have here no connection from the point of view of PHP,
+    we see warnings here.
+} -setup {
     ns_register_proc GET /tclpage {
         lappend _ [ns_php eval {1*2*(2+3)}]
         lappend _ [ns_php eval {$y = 1*2}]
@@ -86,17 +90,6 @@ test tclpage-1.1 {tclpage: PHP evals} -setup {
 } -result "200 {10 2}"
 
 
-test tclpage-1.2 {tclpage: PHP function} -setup {
-    ns_register_proc GET /tclpage {
-        lappend _ [ns_php eval {1*2*(2+3)}]
-        lappend _ [ns_php eval {$y = 1*2}]
-        ns_return 200 text/plain $_
-    }
-} -body {
-    nstest::http -getbody 1 GET /tclpage
-} -cleanup {
-    ns_unregister_op GET /tclpage
-} -result "200 {10 2}"
 
 
 cleanupTests
