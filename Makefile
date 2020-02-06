@@ -32,7 +32,7 @@ endif
 
 
 NS_TEST_CFG	= -c -d -t tests/config.tcl -u nsadmin
-NS_TEST_ALL	= all.tcl $(TCLTESTARGS)
+NS_TEST_ALL	= all.tcl $(TESTFLAGS)
 LD_LIBRARY_PATH	= LD_LIBRARY_PATH="./::$$LD_LIBRARY_PATH"
 
 test: all
