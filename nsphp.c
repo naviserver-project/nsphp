@@ -648,6 +648,7 @@ PHP_FUNCTION(ns_info)
     }
 
     for (opt = 0; cmds[opt] != NULL; opt++) {
+        //Ns_Log(Notice, "ns_info opt %d cmd '%s' name '%s'", opt, cmds[opt], name);
         if (!strcmp(cmds[opt], name)) {
             break;
         }
