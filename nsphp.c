@@ -19,7 +19,7 @@
  * If you do not delete the provisions above,a recipient may use your
  * version of this file under either the License or the GPL.
  *
- *  PHP module for Naviserver
+ *  PHP module for NaviServer
  *
  *  Author: Vlad Seryakov <vlad@crystalballinc.com>
  *          Gustaf Neumann (Port to PHP 7)
@@ -29,7 +29,7 @@
 #include "ns.h"
 #include "nsdb.h"
 
-#define NSPHP_VERSION "0.2"
+#define NSPHP_VERSION "0.3"
 /*
  * Undefine the following macros defined by ns.h, which are as well defined by
  * php_config.h
@@ -148,7 +148,6 @@ static Ns_OpProc php_ns_sapi_request_handler;
 
 /*
  * defined in /usr/local/src/php-5.6.6//main/SAPI.h
-
  */
 static sapi_module_struct naviserver_sapi_module = {
     "naviserver",
@@ -348,11 +347,11 @@ ZvalToObj(zval *zvPtr) {
     if (Z_TYPE_P(zvPtr) == IS_LONG) {
         result = Tcl_NewLongObj(zval_get_long(zvPtr));
     } else if (Z_TYPE_P(zvPtr) == IS_STRING) {
-        Tcl_NewStringObj(Z_STRVAL(*zvPtr), Z_STRLEN(*zvPtr));
+        Tcl_NewStringObj(Z_STRVAL(*zvPtr), (int)Z_STRLEN(*zvPtr));
     } else {
         /*fprintf(stderr, "zval convert to string\n");*/
         convert_to_string(zvPtr);
-        Tcl_NewStringObj(Z_STRVAL(*zvPtr), Z_STRLEN(*zvPtr));
+        Tcl_NewStringObj(Z_STRVAL(*zvPtr), (int)Z_STRLEN(*zvPtr));
     }
     return result;
 }
@@ -375,9 +374,9 @@ ZvalToObj(zval *zvPtr) {
 
 static int php_ns_tcl_cmd(ClientData UNUSED(clientdata), Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    zval val;
-    int status, cmd;
-    ns_context ctx;
+    zval             val;
+    int              status, cmd;
+    ns_context       ctx;
     zend_file_handle file_handle;
 
     enum {
@@ -565,7 +564,8 @@ PHP_FUNCTION(ns_outputheaders)
 PHP_FUNCTION(ns_header)
 {
     const char    *name;
-    int            nlen, num_args = ZEND_NUM_ARGS();
+    size_t         nlen;
+    uint32_t       num_args = ZEND_NUM_ARGS();
 
     if (num_args == 1 && zend_parse_parameters(num_args, "s", &name, &nlen) == SUCCESS) {
         const Ns_Conn *conn = Ns_GetConn();
@@ -583,12 +583,13 @@ PHP_FUNCTION(ns_header)
 PHP_FUNCTION(ns_eval)
 {
     const char *name;
-    int         nlen, num_args = ZEND_NUM_ARGS();
+    size_t      nlen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args == 1 && zend_parse_parameters(num_args, "s", &name, &nlen) == SUCCESS) {
         Tcl_Interp *interp = Ns_GetConnInterp(Ns_GetConn());
 
-        if (Tcl_EvalEx(interp, name, nlen, 0) != TCL_OK) {
+        if (Tcl_EvalEx(interp, name, (int)nlen, 0) != TCL_OK) {
             (void) Ns_TclLogErrorInfo(interp, "\n(context: php eval)");
             RETURN_FALSE;
 
@@ -598,7 +599,7 @@ PHP_FUNCTION(ns_eval)
             Tcl_Obj    *resultObj = Tcl_GetObjResult(interp);
 
             string = Tcl_GetStringFromObj(resultObj, &length);
-            RETVAL_STRINGL(string, length);
+            RETVAL_STRINGL(string, (size_t)length);
         }
     } else {
         RETURN_FALSE;
@@ -608,7 +609,8 @@ PHP_FUNCTION(ns_eval)
 PHP_FUNCTION(ns_log)
 {
     const char *level, *str;
-    int         llen, slen, num_args = ZEND_NUM_ARGS();
+    size_t      llen, slen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args == 2 && zend_parse_parameters(num_args, "ss", &level, &llen, &str, &slen) == SUCCESS) {
         int severity = !strcasecmp(level, "Error") ? Error :
@@ -625,7 +627,8 @@ PHP_FUNCTION(ns_log)
 PHP_FUNCTION(ns_info)
 {
     const char *name;
-    int         nlen, num_args = ZEND_NUM_ARGS();
+    uint32_t    num_args = ZEND_NUM_ARGS();
+    size_t      nlen;
     Ns_DString  ds;
 
     static const char *cmds[] = {
@@ -737,7 +740,7 @@ PHP_FUNCTION(ns_info)
         break;
     }
 
-    RETVAL_STRINGL(ds.string, ds.length);
+    RETVAL_STRINGL(ds.string, (size_t)ds.length);
     Ns_DStringFree(&ds);
 }
 
@@ -746,7 +749,9 @@ PHP_FUNCTION(ns_conn)
     Ns_Conn     *conn;
     Tcl_DString  ds;
     const char  *name;
-    int          nlen, result = TCL_OK, num_args = ZEND_NUM_ARGS();
+    size_t       nlen;
+    int          result = TCL_OK;
+    uint32_t     num_args = ZEND_NUM_ARGS();
 
     static const char *cmds[] = {
         "authpassword", "authuser", "close", "content", "contentlength",
@@ -899,7 +904,7 @@ PHP_FUNCTION(ns_conn)
     }
 
     if (result == TCL_OK) {
-        RETVAL_STRINGL(ds.string, ds.length);
+        RETVAL_STRINGL(ds.string, (size_t)ds.length);
     }
     Ns_DStringFree(&ds);
 }
@@ -907,7 +912,8 @@ PHP_FUNCTION(ns_conn)
 PHP_FUNCTION(ns_returnredirect)
 {
     const char *name;
-    int         nlen, num_args = ZEND_NUM_ARGS();
+    size_t      nlen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args != 1 || zend_parse_parameters(num_args, "s", &name, &nlen) == FAILURE) {
         RETURN_FALSE;
@@ -924,7 +930,9 @@ PHP_FUNCTION(ns_returnredirect)
 PHP_FUNCTION(ns_returndata)
 {
     const char *type, *data;
-    int         tlen, dlen, status, num_args = ZEND_NUM_ARGS();
+    size_t      tlen, dlen;
+    zend_long   status;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args != 3 || zend_parse_parameters(num_args, "lss", &status, &type, &tlen, &data, &dlen) == FAILURE) {
         RETURN_FALSE;
@@ -933,7 +941,7 @@ PHP_FUNCTION(ns_returndata)
         Ns_Conn *conn = Ns_GetConn();
 
         if (conn != NULL) {
-            Ns_ConnReturnData(conn, status, data, dlen, type);
+            Ns_ConnReturnData(conn, (int)status, data, (ssize_t)dlen, type);
         } else {
             RETURN_FALSE;
         }
@@ -943,7 +951,9 @@ PHP_FUNCTION(ns_returndata)
 PHP_FUNCTION(ns_returnfile)
 {
     const char *type, *file;
-    int         tlen, flen, status, num_args = ZEND_NUM_ARGS();
+    size_t      tlen, flen;
+    zend_long   status;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args != 3 || zend_parse_parameters(num_args, "lss", &status, &type, &tlen, &file, &flen) == FAILURE) {
         RETURN_FALSE;
@@ -952,7 +962,7 @@ PHP_FUNCTION(ns_returnfile)
         Ns_Conn *conn = Ns_GetConn();
 
         if (conn != NULL) {
-            Ns_ConnReturnFile(conn, status, type, file);
+            Ns_ConnReturnFile(conn, (int)status, type, file);
         } else {
             RETURN_FALSE;
         }
@@ -962,7 +972,8 @@ PHP_FUNCTION(ns_returnfile)
 PHP_FUNCTION(ns_queryexists)
 {
     const char *name;
-    int         nlen, num_args = ZEND_NUM_ARGS();
+    size_t      nlen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args == 1 && zend_parse_parameters(num_args, "s", &name, &nlen) == SUCCESS) {
         Ns_Conn  *conn = Ns_GetConn();
@@ -981,7 +992,8 @@ PHP_FUNCTION(ns_queryexists)
 PHP_FUNCTION(ns_queryget)
 {
     const char *name;
-    int         nlen, num_args = ZEND_NUM_ARGS();
+    size_t      nlen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args == 1 && (zend_parse_parameters(num_args, "s", &name, &nlen) == SUCCESS)) {
         Ns_Conn  *conn = Ns_GetConn();
@@ -1024,7 +1036,8 @@ PHP_FUNCTION(ns_querygetall)
 
 PHP_FUNCTION(nsv_get)
 {
-    int         alen, klen, num_args = ZEND_NUM_ARGS();
+    uint32_t    num_args = ZEND_NUM_ARGS();
+    size_t      alen, klen;
     const char *aname, *key;
 
     if (num_args != 2 || zend_parse_parameters(num_args, "ss", &aname, &alen, &key, &klen) == FAILURE) {
@@ -1035,7 +1048,7 @@ PHP_FUNCTION(nsv_get)
 
         Ns_DStringInit(&ds);
         if (Ns_VarGet(Ns_ConnServer(conn), aname, key, &ds) == NS_OK) {
-            RETVAL_STRINGL(ds.string, ds.length);
+            RETVAL_STRINGL(ds.string, (size_t)ds.length);
         } else {
             RETURN_FALSE;
         }
@@ -1046,7 +1059,8 @@ PHP_FUNCTION(nsv_get)
 PHP_FUNCTION(nsv_set)
 {
     const char *aname, *key, *value;
-    int         alen, klen, vlen, num_args = ZEND_NUM_ARGS();
+    size_t      alen, klen, vlen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args != 3 || zend_parse_parameters(num_args, "sss", &aname, &alen, &key, &klen, &value, &vlen) == FAILURE) {
         RETURN_FALSE;
@@ -1061,7 +1075,8 @@ PHP_FUNCTION(nsv_set)
 PHP_FUNCTION(nsv_exists)
 {
     const char *aname, *key;
-    int         alen, klen, num_args = ZEND_NUM_ARGS();
+    size_t      alen, klen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args != 3 || zend_parse_parameters(num_args, "sss", &aname, &alen, &key, &klen) == FAILURE) {
         RETURN_FALSE;
@@ -1076,7 +1091,9 @@ PHP_FUNCTION(nsv_exists)
 PHP_FUNCTION(nsv_incr)
 {
     const char *aname, *key;
-    int         alen, klen, count = 1, num_args = ZEND_NUM_ARGS();
+    size_t      alen, klen;
+    zend_long   count = 1;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args < 2 || num_args > 3
         || zend_parse_parameters(num_args, "ss|l", &aname, &alen, &key, &klen, &count) == FAILURE) {
@@ -1085,14 +1102,15 @@ PHP_FUNCTION(nsv_incr)
     } else {
         const Ns_Conn *conn = Ns_GetConn();
 
-        RETURN_LONG(Ns_VarIncr(Ns_ConnServer(conn), aname, key, count));
+        RETURN_LONG(Ns_VarIncr(Ns_ConnServer(conn), aname, key, (int)count));
     }
 }
 
 PHP_FUNCTION(nsv_unset)
 {
     const char *aname, *key = NULL;
-    int         alen, klen, num_args = ZEND_NUM_ARGS();
+    size_t      alen, klen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args < 1 || num_args > 2
         || zend_parse_parameters(num_args, "s|s", &aname, &alen, &key, &klen) == FAILURE) {
@@ -1108,7 +1126,8 @@ PHP_FUNCTION(nsv_unset)
 PHP_FUNCTION(nsv_append)
 {
     const char *aname, *key, *value;
-    int         alen, klen, vlen, num_args = ZEND_NUM_ARGS();
+    size_t      alen, klen, vlen;
+    uint32_t    num_args = ZEND_NUM_ARGS();
 
     if (num_args != 3 || zend_parse_parameters(num_args, "sss", &aname, &alen, &key, &klen, &value, &vlen) == FAILURE) {
         RETURN_FALSE;
@@ -1141,7 +1160,7 @@ static size_t php_ns_sapi_ub_write(const char *str, size_t len)
 
     if (Ns_ConnWriteData(ctx->conn, (void *) str, len, NS_CONN_STREAM) != NS_OK) {
         php_handle_aborted_connection();
-        return -1;
+        return 0;
     }
 
     return len;
@@ -1205,6 +1224,8 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
             break;
 
         default:
+            // SAPI_HEADER_DELETE_ALL
+            // SAPI_HEADER_SET_STATUS
             break;
         }
 
@@ -1221,7 +1242,7 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
         case SAPI_HEADER_ADD:
         case SAPI_HEADER_REPLACE:
             if (strcasecmp(name, "Content-Length") == 0) {
-                Ns_ConnSetLengthHeader(ctx->conn, atoll(p), 0);
+                Ns_ConnSetLengthHeader(ctx->conn, (size_t)atoll(p), 0);
             } else if (op == SAPI_HEADER_ADD || (strcasecmp(name, "Set-Cookie") == 0)) {
                 Ns_ConnSetHeaders(ctx->conn, name, p);
             } else {
@@ -1232,6 +1253,7 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
             break;
 
         default:
+            // SAPI_HEADER_SET_STATUS
             break;
         }
 
@@ -1301,7 +1323,7 @@ static char *php_ns_sapi_read_cookies(TSRMLS_D)
 }
 
 
-static void php_ns_sapi_log_message(char *message, int syslog_type_int)
+static void php_ns_sapi_log_message(char *message, int UNUSED(syslog_type_int))
 {
     Ns_Log(Error, "nsphp: %s", message);
 }
@@ -1309,7 +1331,8 @@ static void php_ns_sapi_log_message(char *message, int syslog_type_int)
 static void php_ns_sapi_info(ZEND_MODULE_INFO_FUNC_ARGS)
 {
     char        buf[512];
-    int         i, uptime = Ns_InfoUptime();
+    long        uptime = Ns_InfoUptime();
+    size_t      i;
     ns_context *ctx = SG(server_context);
 
     if (ctx->conn == NULL) {
@@ -1326,7 +1349,11 @@ static void php_ns_sapi_info(ZEND_MODULE_INFO_FUNC_ARGS)
     php_info_print_table_row(2, "Server platform", Ns_InfoPlatform());
     snprintf(buf, 511, "%s/%s", Ns_InfoServerName(), Ns_InfoServerVersion());
     php_info_print_table_row(2, "Server version", buf);
-    snprintf(buf, 511, "%d day(s), %02d:%02d:%02d", uptime / 86400, (uptime / 3600) % 24, (uptime / 60) % 60, uptime % 60);
+    snprintf(buf, 511, "%ld day(s), %02ld:%02ld:%02ld",
+             uptime / 86400,
+             (uptime / 3600) % 24,
+             (uptime / 60) % 60,
+             uptime % 60);
     php_info_print_table_row(2, "Server uptime", buf);
     php_info_print_table_end();
 
@@ -1359,7 +1386,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array)
         return;
 
     } else {
-        int         i;
+        size_t      i;
         Ns_DString  ds;
         char       *p, *value, c;
 
@@ -1372,7 +1399,7 @@ static void php_ns_sapi_register_variables(zval *track_vars_array)
             Ns_DStringSetLength(&ds, 0);
             Ns_DStringPrintf(&ds, "HTTP_%s", key);
             for (p = ds.string + 5; (c = *p); p++) {
-                c = toupper(c);
+                c = (char)toupper(c);
                 if (c < 'A' || c > 'Z') {
                     c = '_';
                 }
@@ -1448,9 +1475,9 @@ static void php_ns_sapi_register_variables(zval *track_vars_array)
     }
 }
 
-static int php_ns_sapi_startup(sapi_module_struct * sapi_module)
+static int php_ns_sapi_startup(sapi_module_struct *sapi_module_ptr)
 {
-    if (php_module_startup(sapi_module, &nsphp_module_entry, 1) == FAILURE) {
+    if (php_module_startup(sapi_module_ptr, &nsphp_module_entry, 1) == FAILURE) {
         return FAILURE;
     } else {
         return SUCCESS;
@@ -1461,7 +1488,7 @@ static int php_ns_sapi_startup(sapi_module_struct * sapi_module)
  * The php_ns_request_handler() is called per request and handles everything for one request.
  */
 
-static int php_ns_sapi_request_handler(const void *context, Ns_Conn *conn)
+static int php_ns_sapi_request_handler(const void *UNUSED(context), Ns_Conn *conn)
 {
     Ns_DString       ds;
     ns_context       ctx;
@@ -1486,7 +1513,7 @@ static int php_ns_sapi_request_handler(const void *context, Ns_Conn *conn)
     SG(request_info).request_uri = (char *)conn->request.url;
     SG(request_info).request_method = conn->request.method;
     SG(request_info).proto_num = conn->request.version > 1.0 ? 1001 : 1000;
-    SG(request_info).content_length = Ns_ConnContentLength(conn);
+    SG(request_info).content_length = (zend_long)Ns_ConnContentLength(conn);
     SG(request_info).content_type = Ns_SetIGet(conn->headers, "Content-Type");
     SG(request_info).auth_user = STRDUP(Ns_ConnAuthUser(conn));
     SG(request_info).auth_password = STRDUP(Ns_ConnAuthPasswd(conn));
@@ -1494,7 +1521,7 @@ static int php_ns_sapi_request_handler(const void *context, Ns_Conn *conn)
 
     SG(server_context) = &ctx;
     memset(&ctx, 0, sizeof(ctx));
-    ctx.data_avail = SG(request_info).content_length;
+    ctx.data_avail = (size_t)SG(request_info).content_length;
     ctx.conn = conn;
 
     file_handle.type = ZEND_HANDLE_FILENAME;
@@ -1546,13 +1573,13 @@ static int pdo_naviserver_stmt_execute(pdo_stmt_t *stmt)
 
     case NS_ROWS:
         Ns_DbBindRow(db->db);
-        stmt->column_count = db->db->row->size;
+        stmt->column_count = (int)db->db->row->size;
         break;
     }
     return 1;
 }
 
-static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt, enum pdo_fetch_orientation ori, long offset)
+static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt, enum pdo_fetch_orientation UNUSED(ori), long UNUSED(offset))
 {
     ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
 
@@ -1584,7 +1611,9 @@ static int pdo_naviserver_stmt_describe(pdo_stmt_t *stmt, int colno)
     return 1;
 }
 
-static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, unsigned long *len, int *caller_frees)
+static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno,
+                                       char **ptr, unsigned long *len,
+                                       int *UNUSED(caller_frees))
 {
     ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
 
@@ -1596,7 +1625,7 @@ static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, 
     return 1;
 }
 
-static int pdo_naviserver_handle_fetch_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, zval *info)
+static int pdo_naviserver_handle_fetch_error(pdo_dbh_t *dbh, pdo_stmt_t *UNUSED(stmt), zval *info)
 {
     ns_pdo_handle *db = (ns_pdo_handle *)dbh->driver_data;
     add_next_index_string(info, db->db->dsExceptionMsg.string);
@@ -1619,8 +1648,10 @@ static int pdo_naviserver_handle_closer(pdo_dbh_t *dbh)
     return 0;
 }
 
-static int pdo_naviserver_handle_quoter(pdo_dbh_t *dbh, const char *unquoted, size_t unquotedlen,
-                                        char **quoted, size_t *quotedlen, enum pdo_param_type paramtype)
+static int pdo_naviserver_handle_quoter(pdo_dbh_t *UNUSED(dbh),
+                                        const char *unquoted, size_t unquotedlen,
+                                        char **quoted, size_t *quotedlen,
+                                        enum pdo_param_type UNUSED(paramtype))
 {
     char  *q;
     size_t l = 1;
@@ -1646,7 +1677,10 @@ static int pdo_naviserver_handle_quoter(pdo_dbh_t *dbh, const char *unquoted, si
     return 1;
 }
 
-static int pdo_naviserver_handle_preparer(pdo_dbh_t *dbh, const char *sql, size_t sql_len, pdo_stmt_t *stmt, zval *driver_options)
+static int pdo_naviserver_handle_preparer(pdo_dbh_t *dbh,
+                                          const char *sql, size_t UNUSED(sql_len),
+                                          pdo_stmt_t *stmt,
+                                          zval *UNUSED(driver_options))
 {
     ns_pdo_handle *db = (ns_pdo_handle *)dbh->driver_data;
 
@@ -1659,7 +1693,7 @@ static int pdo_naviserver_handle_preparer(pdo_dbh_t *dbh, const char *sql, size_
     return 1;
 }
 
-static zend_long pdo_naviserver_handle_doer(pdo_dbh_t *dbh, const char *sql, size_t sql_len)
+static zend_long pdo_naviserver_handle_doer(pdo_dbh_t *dbh, const char *sql, size_t UNUSED(sql_len))
 {
     ns_pdo_handle *db = (ns_pdo_handle *)dbh->driver_data;
 
@@ -1675,7 +1709,7 @@ static zend_long pdo_naviserver_handle_doer(pdo_dbh_t *dbh, const char *sql, siz
     }
 }
 
-static int pdo_naviserver_handle_factory(pdo_dbh_t *dbh, zval *driver_options)
+static int pdo_naviserver_handle_factory(pdo_dbh_t *dbh, zval *UNUSED(driver_options))
 {
     ns_pdo_handle *db = ns_malloc(sizeof(ns_pdo_handle));
 
