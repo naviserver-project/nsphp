@@ -122,7 +122,7 @@ static int pdo_naviserver_stmt_dtor(pdo_stmt_t *stmt);
 static int pdo_naviserver_stmt_execute(pdo_stmt_t *stmt);
 static int pdo_naviserver_stmt_fetch(pdo_stmt_t *stmt, enum pdo_fetch_orientation ori, long offset);
 static int pdo_naviserver_stmt_describe(pdo_stmt_t *stmt, int colno);
-static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, unsigned long *len, int *caller_frees);
+static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, size_t *len, int *caller_frees);
 
 static size_t php_ns_sapi_ub_write(const char *str, size_t len);
 static size_t php_ns_sapi_read_post(char *buf, size_t count_bytes);
@@ -510,10 +510,10 @@ static int php_ns_tcl_cmd(ClientData UNUSED(clientdata), Tcl_Interp *interp, int
     return status;
 }
 
-static int php_ns_tcl_init(Tcl_Interp *interp, const void *arg)
+static Ns_ReturnCode php_ns_tcl_init(Tcl_Interp *interp, const void *arg)
 {
     Tcl_CreateObjCommand(interp, "ns_php", php_ns_tcl_cmd, (ClientData)arg, NULL);
-    return TCL_OK;
+    return NS_OK;
 }
 
 static void ThreadArgProc(Tcl_DString *dsPtr, Ns_ThreadProc proc, const void *arg)
@@ -1492,8 +1492,10 @@ static int php_ns_sapi_startup(sapi_module_struct *sapi_module_ptr)
 static int php_ns_sapi_request_handler(const void *UNUSED(context), Ns_Conn *conn)
 {
     Ns_DString       ds;
+    Ns_ReturnCode    status;
     ns_context       ctx;
     zend_file_handle file_handle;
+
     void *tsrm_ls_cache = tsrm_get_ls_cache();
 
 
@@ -1503,11 +1505,15 @@ static int php_ns_sapi_request_handler(const void *UNUSED(context), Ns_Conn *con
         Ns_Log(Notice, "nsphp: refresh tsrm_ls_cache");
     }
 
+    Ns_DStringInit(&ds);
+    status = Ns_UrlToFile(&ds, Ns_ConnServer(conn), conn->request.url);
+    if (status != NS_OK) {
+        Ns_Log(Warning, "nsphp: trying to access non-existing PHP file via url: '%s'", conn->request.url);
+    }
+
     memset(&file_handle, 0, sizeof(zend_file_handle));
 
-    Ns_DStringInit(&ds);
-    Ns_UrlToFile(&ds, Ns_ConnServer(conn), conn->request.url);
-
+    sapi_initialize_empty_request();
     SG(request_info).path_translated = ds.string;
 
     SG(request_info).query_string = conn->request.query;
@@ -1613,12 +1619,12 @@ static int pdo_naviserver_stmt_describe(pdo_stmt_t *stmt, int colno)
 }
 
 static int pdo_naviserver_stmt_get_col(pdo_stmt_t *stmt, int colno,
-                                       char **ptr, unsigned long *len,
+                                       char **ptr, size_t *len,
                                        int *UNUSED(caller_frees))
 {
     ns_pdo_handle *db = (ns_pdo_handle *)stmt->driver_data;
 
-    if (colno >= db->row->size) {
+    if ((size_t)colno >= db->row->size) {
         return 0;
     }
     *ptr = db->row->fields[colno].value;
