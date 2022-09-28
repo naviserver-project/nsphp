@@ -1,250 +1,536 @@
-2019-05-04 20:37 +0200  Gustaf Neumann  <neumann@wu-wien.ac.at>  (6bd6faf53ed8 [tip])
+commit 916850ce81436fb6ff962fa30a1ecf0b1213b0ae
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2021-07-23
 
-	* README:
-	improve README file
+    Modernize code
 
-2019-05-04 20:29 +0200  Gustaf Neumann  <neumann@wu-wien.ac.at>  (99dbd9a1b9b5)
+M	nsphp.c
 
-	* tests/pages/calltcl.php, tests/pages/globals.php,
-	tests/pages/server.php: new file.
-	* Makefile, README, nsphp.c, tests/pages/calltcl.php,
-	tests/pages/globals.php, tests/pages/server.php, tests/php.test:
-	upgrade module to PHP 7, extend test cases substantially, fix memory
-	leaks
+commit 1a517f8a7c973281b841230b121d05103ad4ea90
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-02-12
 
-	This is a major overhaul of nsphp, which makes it possible to use
-	PHP 7 (tested with PHP 7.3.5). PHP 5 reached it EOL by jan 2019. PHP
-	7 has substantial changes e.g. in memory and thread management
-	compared to PHP 5, several interfaces and API calls have changed,
-	such that it is not possible to compile the new version of nsphp
-	with still PHP 5. In case, someone wants to use nsphp with PHP 5,
-	please checkout versions before this commit from the repository.
+    add debugging line for emergency debugging
 
-2018-11-03 18:50 +0100  Gustaf Neumann  <neumann@wu-wien.ac.at>  (d94039d0279e)
+M	nsphp.c
 
-	* README:
-	updated README
+commit f6cb314ef403cd6a400dfa2c223333dab7d1f9c4
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-02-12
 
-2018-06-19 09:18 +0200  Gustaf Neumann  <neumann@wu-wien.ac.at>  (250cdc2d3877)
+    adjust to changed parameter types in PHP 7
+    improve cleanness of compilation
 
-	* Makefile:
-	unify spelling of macOS
+M	nsphp.c
 
-2018-06-19 09:15 +0200  Gustaf Neumann  <neumann@wu-wien.ac.at>  (b596e9ea7a59)
+commit 79bcc96053e77a15a3acb40ecf49bc63d9cd7c53
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-02-06
 
-	* README:
-	fix typo in README
+    fix name of module in README file
 
-2018-06-10 14:37 +0200  Gustaf Neumann  <neumann@wu-wien.ac.at>  (2c215cf1fd97)
+M	README
 
-	* nsphp.c:
-	whitespace cleanup
+commit b8d2cf2bf7b0c680f61eee897a66f884c653b3fb
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-02-06
 
-2018-06-10 14:35 +0200  Gustaf Neumann  <neumann@wu-wien.ac.at>  (5fc60b4171fc)
+    improve documentation in test case
 
-	* Makefile, nsphp.c:
-	reduce compiler warnings
+M	tests/php.test
 
-2018-06-09 16:25 +0000  Gustaf Neumann  <neumann@wu.ac.at>  (43016f156173)
+commit c5bbcd99439120534b866b2d8fa1c904d2d7d663
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-02-06
 
-	* nsphp.c:
-	Merged in TonyBennett/nsphp (pull request #2)
+    no need to register handler for php4
 
-	Changed conn->request->{name} to conn->request.{name}.
+M	tests/config.tcl
 
-	Approved-by: Gustaf Neumann <neumann@wu.ac.at> was broken since
-	refactoring in 2016-04-09 (Driver reform: implement leftover
-	management for persistent connections)
+commit 34b1feb4781190aa2eaf4d90f175aa631505d223
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-02-06
 
-2018-06-08 12:47 -0700  anthonybennett  <anthonybennett@outlook.com>  (beca340df286)
+    parse TESTFLAGS as in main NaviServer Makefile
 
-	* nsphp.c:
-	Changed conn->request->{name} to conn->request.{name}. The -> is for
-	structures as pointers whereas . is for normal structures.
+M	Makefile
 
-2016-12-31 13:49 +0100  Gustaf Neumann  <neumann@wu-wien.ac.at>  (4e2974cf700f)
+commit e2cf238c24454beb84fdc16abac5fd6c2480d94b
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-02-05
 
-	* nsphp.c:
-	- align with prototypes
+    bring test environment in sync with naviserver
 
-2016-12-31 13:42 +0100  Gustaf Neumann  <neumann@wu-wien.ac.at>  (fba157d459bd)
+M	tests/config.tcl
+D	tests/modules/testhttp.tcl
+A	tests/modules/testhttps.tcl
+M	tests/php.test
 
-	* nsphp.c:
-	- align port type
+commit f81fef7e72fcfafd1c046740e6c31b99bbad51b7
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-02-05
 
-2016-10-07 23:36 +0000  Anthony Bennett  <anthonybennett@outlook.com>  (ff83a5269c34)
+    provide clean compile (at least with CentOS 6)
 
-	* nsphp.c:
-	Added const to Ns_ModuleInit to match Naviserver. Without it PHP
-	wouldn't compile.
+M	nsphp.c
 
-2016-04-13 00:24 +0200  Gustaf Neumann  <neumann@wu-wien.ac.at>  (d313c53c72e9)
+commit 41de1ce9e0cf17e797c179fb60871bd4b211b542
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2020-01-06
 
-	* nsphp.c:
-	- use typedef Ns_ModuleInitProc for Ns_ModuleInit()
+    fixed potential uninitialized variable
 
-2016-01-11 08:44 +0100  Gustaf Neumann  <neumann@wu-wien.ac.at>  (514280215ca7)
+M	nsphp.c
 
-	* Makefile, nsphp.c:
-	- Removed NULL after the last typed argument to a variadic function
-	- Reduced variable scopes
-	- update version number of php
+commit 1568c49f59c4212879479c5be0969df9475e913b
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2019-12-13
 
-2015-03-04 04:53 +0100  Gustaf Neumann  <neumann@wu-wien.ac.at>  (36a1d915d140)
+    improve spelling
 
-	* Makefile, nsphp.c:
-	- let sapi handler work on PUT and DELETE requests
-	- add flag to enable multi-byte support
+M	nsphp.c
+M	tests/modules/testhttp.tcl
 
-2015-02-28 17:56 +0100  Gustaf Neumann  <neumann@wu-wien.ac.at>  (9a1ba5bdf602)
+commit 55891a47b9ded7c857d4896c406f21bf13c87300
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2019-05-17
 
-	* Makefile, README, nsphp.c, tests/php.test:
-	- adopted for compilation with php 5.6.6 (interfaces changed)
-	- code cleanup to reduce number of warning
-	- fixed regression test
+    reduce verbosity
 
-2008-12-21 15:59 -0500  Vlad Seryakov  <vseryakov@gmail.com>  (2c7a0d7185cd)
+M	nsphp.c
 
-	* Makefile:
-	Update manual build with option to use system GD instead of included
-	old
+commit 0e9bb9d9b49c32db146e5be5cad39633debb7602
+Author: Gustaf Neumann <neumann@wu.ac.at>
+Date:   2019-05-04
 
-2008-12-01 23:40 -0500  Vlad Seryakov  <vseryakov@gmail.com>  (89dbfbf01509)
+    fight with markdown
 
-	* ChangeLog, Makefile:
-	Makefile: Add more options for custom php build, autodetect in their
-	configure does not work, some options have to be enabled manually
+M	README
 
-2008-11-09 04:44 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (f10acee790be)
+commit b55267be10a579272e385a721f60d1584a219c98
+Author: Gustaf Neumann <neumann@wu.ac.at>
+Date:   2019-05-04
 
-	* ChangeLog, Makefile, README:
-	Rename 'build' Makefile target 'php'
+    README edited online with Bitbucket
 
-2008-11-09 04:37 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (0f82472dfdcb)
+M	README
 
-	* ChangeLog, Makefile:
-	On OS X -rpath and CCRFLAG are not supported
+commit 36acb3644180abbe7ae502d187e8eef640751ad4
+Author: Gustaf Neumann <neumann@wu.ac.at>
+Date:   2019-05-04
 
-2008-11-09 04:25 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (792ff2fdb0a9)
+    README edited online with Bitbucket
 
-	* ChangeLog, Makefile, README, nsphp.c:
-	Add 'build' target to download and build PHP library
+M	README
 
-2008-11-08 23:57 +0000  Stephen Deasey  <sdeasey@gmail.com>  (67591294cdcd)
+commit 066a52aa80ad2c43e013c839e2f0ce24b33b77eb
+Author: Gustaf Neumann <neumann@wu.ac.at>
+Date:   2019-05-04
 
-	* ChangeLog, Makefile, README, tests/config.tcl:
-	Enable building against in already installed shared library version
-	of php
+    README edited online with Bitbucket
 
-2008-11-08 23:54 +0000  Stephen Deasey  <sdeasey@gmail.com>  (e4e767ff269a)
+M	README
 
-	* ChangeLog: new file.
-	* ChangeLog:
-	Add missing ChangeLog with backlogged entries
+commit 7dd6df3f06d54d5357c372e636e7e3c0e1f5baa3
+Author: Gustaf Neumann <neumann@wu.ac.at>
+Date:   2019-05-04
 
-2008-11-08 22:39 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (1969e5efa1dd)
+    README edited online with Bitbucket
 
-	* nsphp.c, tests/pages/test.php, tests/php.test:
-	Fix bug with chunked encoding and headers-only responses
+M	README
 
-2008-11-08 05:01 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (229357008381)
+commit 0134d13b84bf2ca88f8c87b4268fa76cd622901d
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2019-05-04
 
-	* Makefile, README, tests/php.test:
-	Simplify PHP configure process
+    improve README file
 
-2008-11-08 03:31 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (05b65df17e3f)
+M	README
 
-	* tests/all.tcl, tests/config.tcl, tests/modules/testhttp.tcl,
-	tests/pages/test.php, tests/php.test: new file.
-	* Makefile, tests/all.tcl, tests/config.tcl,
-	tests/modules/testhttp.tcl, tests/pages/test.php, tests/php.test:
-	Add tests for nsphp
+commit e0463c1098ad3fbe7779b5954afc84b1fdcf3eca
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2019-05-04
 
-2008-10-30 01:13 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (70ce294902ef)
+    upgrade module to PHP 7, extend test cases substantially, fix memory leaks
+    
+    This is a major overhaul of nsphp, which makes it possible to use PHP 7
+    (tested with PHP 7.3.5). PHP 5 reached it EOL by jan 2019. PHP 7 has
+    substantial changes e.g. in memory and thread management compared
+    to PHP 5, several interfaces and API calls have changed, such that
+    it is not possible to compile the new version of nsphp with still
+    PHP 5. In case, someone wants to use nsphp with PHP 5, please
+    checkout versions before this commit from the repository.
 
-	* nsphp.c:
-	Fix bug with PHP exiting without flushing headers
+M	Makefile
+M	README
+M	nsphp.c
+A	tests/pages/calltcl.php
+A	tests/pages/globals.php
+A	tests/pages/server.php
+M	tests/php.test
 
-2008-10-21 22:46 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (24769e653d9d)
+commit 7bd39a0395368a61207128e10a94a261a6066557
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2018-11-03
 
-	* nsphp.c:
-	Handle change in nsv API
+    updated README
 
-2008-10-05 18:03 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (bb1ddee17414)
+M	README
 
-	* Makefile:
-	OS X does not have O_LARGEFILE
+commit 8429319c52b025c5ef5ec43607b424afd293bfc4
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2018-06-19
 
-2008-08-08 00:34 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (4fb932b69d4c)
+    unify spelling of macOS
 
-	* nsphp.c:
-	Fix header handler function: now adds/replaces headers correctly
+M	Makefile
 
-2008-07-29 17:51 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (db6221ae87c1)
+commit f821a3b4fa7d59c6e551a2cac68af4c583d74555
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2018-06-19
 
-	* nsphp.c:
-	Remove dupes in PHP function definition array
+    fix typo in README
 
-2008-07-27 20:21 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (3cb07e0b0163)
+M	README
 
-	* README, nsphp.c:
-	Rename ns_nsv* functions nsv_*
+commit dc376ade0ca1df5a6a5141a6badbd31735c31b60
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2018-06-10
 
-2008-07-27 20:08 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (6b89f10d31d2)
+    whitespace cleanup
 
-	* Makefile, README, config.m4, nsphp.c:
-	Interface the PDO database driver API to nsdb
+M	nsphp.c
 
-2008-07-25 23:01 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (f1c63031b491)
+commit 41f74039c8c6a9188ce3e0b25e0c1b5e181dc12e
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2018-06-10
 
-	* Makefile, README, config.m4, nsphp.c:
-	Implement nsv and many other functions in PHP
+    reduce compiler warnings
 
-2008-05-05 18:15 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (2e7237d3eb73)
+M	Makefile
+M	nsphp.c
 
-	* Makefile, README, nsphp.c:
-	Bump PHP version to 5.2.6; fix auth bug which used wrong memory
-	allocation
+commit ab8b69a6de8bf68ef0b9a9061e10e7a46cd2b945
+Merge: 7ae0ba3 fb504a6
+Author: Gustaf Neumann <neumann@wu.ac.at>
+Date:   2018-06-09
 
-2008-01-30 16:44 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (88695c0325e0)
+    Merged in TonyBennett/nsphp (pull request #2)
+    
+    Changed conn->request->{name} to conn->request.{name}.
+    
+    Approved-by: Gustaf Neumann <neumann@wu.ac.at>
+    was broken since refactoring in 2016-04-09 (Driver reform: implement leftover management for persistent connections)
 
-	* Makefile, README, nsphp.c:
-	Bump PHP version to 5.2.5; make SERVER_NAME virtual host aware
+commit fb504a6d9c695a3e0b482c0d03df0227073f7e3a
+Author: anthonybennett@outlook.com <anthonybennett@outlook.com>
+Date:   2018-06-08
 
-2007-10-19 02:51 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (3a68d29490ce)
+    Changed conn->request->{name} to conn->request.{name}. The -> is for structures as pointers whereas . is for normal structures.
 
-	* Makefile:
-	Bump PHP version to 5.2.4
+M	nsphp.c
 
-2007-03-22 18:15 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (414f05ecf6be)
+commit 7ae0ba36c49ee613e945c77f16485c3a37e27d7b
+Merge: 9e22cd9 58dd1c3
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2016-12-31
 
-	* nsphp.c:
-	Update license to reflect that it contains no GPL code
+    - align with prototypes
 
-2006-12-11 05:06 +0000  Vlad Seryakov  <vlad@crystalballinc.com>  (6b4a48accb45)
+commit 9e22cd9c1ab0b48e96912330bbd057b431a43a4d
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2016-12-31
 
-	* Makefile:
-	Update to PHP 5.2.0
+    - align port type
 
-2006-06-26 22:33 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (15088e8aa813)
+M	nsphp.c
 
-	* README, nsphp.c:
-	Add new ns_log PHP function; tested with more webmail packages
+commit 58dd1c3d830163357a38d5ff137244de213667ac
+Author: Anthony Bennett <anthonybennett@outlook.com>
+Date:   2016-10-07
 
-2006-06-26 15:52 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (b287958c64fb)
+    Added const to Ns_ModuleInit to match Naviserver.  Without it PHP wouldn't compile.
 
-	* Makefile, README:
-	Add automatic downloading and compiling of PHP library
+M	nsphp.c
 
-2006-06-25 17:47 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (c3e23daea786)
+commit f8796d0549f368c4572d454531119138b573254a
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2016-04-13
 
-	* LICENSE, Makefile: new file.
-	* LICENSE, Makefile:
-	Add LICENSE and Makefile
+    - use typedef Ns_ModuleInitProc for Ns_ModuleInit()
 
-2006-06-24 16:29 +0100  Vlad Seryakov  <vlad@crystalballinc.com>  (d1efd1974255)
+M	nsphp.c
 
-	* README, config.m4, nsphp.c, php.sym: new file.
-	* README, config.m4, nsphp.c, php.sym:
-	Initial revision
+commit 782fa8d60b90f51c31424b2da7cd01715fc692d3
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2016-01-11
 
+    - Removed NULL after the last typed argument to a variadic function
+    - Reduced variable scopes
+    - update version number of php
+
+M	Makefile
+M	nsphp.c
+
+commit 2c395da74c5e21f3a74f6044f56a0c73bdb3e05a
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2015-03-04
+
+    - let sapi handler work on PUT and DELETE requests
+    - add flag to enable multi-byte support
+
+M	Makefile
+M	nsphp.c
+
+commit 5091fb56b5b52c0aa6232b0a54ba07d1c00ec5be
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2015-02-28
+
+    - adopted for compilation with php 5.6.6 (interfaces changed)
+    - code cleanup to reduce number of warning
+    - fixed regression test
+
+M	Makefile
+M	README
+M	nsphp.c
+M	tests/php.test
+
+commit 5da278424f1765f7cbf92a454d96bd568f7c1c98
+Author: Vlad Seryakov <vseryakov@gmail.com>
+Date:   2008-12-21
+
+    Update manual build with option to use system GD instead of included old
+
+M	Makefile
+
+commit ea3737e4065477eedfbb557dd95e1a65b6d727a4
+Author: Vlad Seryakov <vseryakov@gmail.com>
+Date:   2008-12-01
+
+    Makefile: Add more options for custom php build, autodetect
+    in their configure does not work, some options have to be enabled manually
+
+M	Makefile
+
+commit 73e6979bce6584dc268371d21cced2bb10fc1e93
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-11-09
+
+    Rename 'build' Makefile target 'php'
+
+M	Makefile
+M	README
+
+commit dbd8e4ba62570fd3542cc089c57de1aaa9753648
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-11-09
+
+    On OS X -rpath and CCRFLAG are not supported
+
+M	Makefile
+
+commit 99b917d00fa6ee2ad8c6083ef0d06c6401cad1b4
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-11-09
+
+    Add 'build' target to download and build PHP library
+
+M	Makefile
+M	README
+M	nsphp.c
+
+commit 74dce8b4e2ac4790788620c6bc4488b94c4f4713
+Author: Stephen Deasey <sdeasey@gmail.com>
+Date:   2008-11-08
+
+    Enable building against in already installed shared library version of php
+
+M	Makefile
+M	README
+M	tests/config.tcl
+
+commit 27e1d78dcf21c818de0361224165bdf11dea3673
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-11-08
+
+    Fix bug with chunked encoding and headers-only responses
+
+M	nsphp.c
+M	tests/pages/test.php
+M	tests/php.test
+
+commit 24ad4dcd99b761d5ae3aaf4029556a1e92fc757c
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-11-08
+
+    Simplify PHP configure process
+
+M	Makefile
+M	README
+M	tests/php.test
+
+commit fb57afbe32b6bf95200ddebf92e284d78971e6fc
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-11-08
+
+    Add tests for nsphp
+
+M	Makefile
+A	tests/all.tcl
+A	tests/config.tcl
+A	tests/modules/testhttp.tcl
+A	tests/pages/test.php
+A	tests/php.test
+
+commit 20692122ed595f0f58cb6f69934b90facd478513
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-10-30
+
+    Fix bug with PHP exiting without flushing headers
+
+M	nsphp.c
+
+commit e722abe4ab2db83e2d2acd3ff744fe21c1bb3896
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-10-21
+
+    Handle change in nsv API
+
+M	nsphp.c
+
+commit 607d758bf5926ebf34fca946c853307dcb3f4fc3
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-10-05
+
+    OS X does not have O_LARGEFILE
+
+M	Makefile
+
+commit 8ab941f1f93af5f6cfcbe807da79f35317f63f93
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-08-08
+
+    Fix header handler function: now adds/replaces headers correctly
+
+M	nsphp.c
+
+commit 18523783f02f78024e6e11edba79cf0851609772
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-07-29
+
+    Remove dupes in PHP function definition array
+
+M	nsphp.c
+
+commit fd0ba051599fa182ba7296e8afe3c02c1c0e2744
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-07-27
+
+    Rename ns_nsv* functions nsv_*
+
+M	README
+M	nsphp.c
+
+commit 83aa939f174b0e91694cb58d9057e32b1d78e69b
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-07-27
+
+    Interface the PDO databse driver API to nsdb
+
+M	Makefile
+M	README
+M	config.m4
+M	nsphp.c
+
+commit 32647551afa0ea57af3d7aef24e6d2a9e419de3c
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-07-25
+
+    Implement nsv and many other functions in PHP
+
+M	Makefile
+M	README
+M	config.m4
+M	nsphp.c
+
+commit d8a06fc4524772767a3c076cc52351bbf84ba5eb
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-05-05
+
+    Bump PHP version to 5.2.6; fix auth bug which used wrong memory allocation
+
+M	Makefile
+M	README
+M	nsphp.c
+
+commit 0d9b5c9f900f1f5eddf1f22a6d11e533219ea524
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2008-01-30
+
+    Bump PHP version to 5.2.5; make SERVER_NAME virtual host aware
+
+M	Makefile
+M	README
+M	nsphp.c
+
+commit 318ac987a8e8c2008c4c5760b4038f52395cdf4d
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2007-10-19
+
+    Bump PHP version to 5.2.4
+
+M	Makefile
+
+commit 26103425ff8eab26db4e535d47f4a3638e962ea8
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2007-03-22
+
+    Update license to reflect that it contains no GPL code
+
+M	nsphp.c
+
+commit f79d9c293861cc207fbe8d39d086f48b4cbd1099
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2006-12-11
+
+    Update to PHP 5.2.0
+
+M	Makefile
+
+commit 86ffeec76edb14fbe1a60bd42add31b8d4fd84d9
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2006-06-26
+
+    Add new ns_log PHP function; tested with more webmail packages
+
+M	README
+M	nsphp.c
+
+commit 5be925ea14845ec9a9b530cf82baf2ae20debc95
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2006-06-26
+
+    Add automatic downloading and compiling of PHP library
+
+M	Makefile
+M	README
+
+commit 1eba9e246c10ae2745a934d8d15207f34bfb8544
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2006-06-25
+
+    Add LICENSE and Makefile
+
+A	LICENSE
+A	Makefile
+
+commit a4ddc9bdeb0c0254a8ed5935b81d6aa3f2493c46
+Author: Vlad Seryakov <vlad@crystalballinc.com>
+Date:   2006-06-24
+
+    Initial revision
+
+A	README
+A	config.m4
+A	nsphp.c
+A	php.sym

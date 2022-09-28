@@ -1187,7 +1187,7 @@ static int php_nsapi_remove_header(sapi_header_struct *sapi_header)
 
 
 /*
- * php_ns_sapi_header_handler() sets a HTTP reply header to be sent to the client.
+ * php_ns_sapi_header_handler() sets an HTTP reply header to be sent to the client.
  */
 static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
                                       sapi_header_op_enum op,
