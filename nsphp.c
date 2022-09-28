@@ -980,7 +980,7 @@ PHP_FUNCTION(ns_queryexists)
         Ns_Conn  *conn = Ns_GetConn();
 
         if (conn != NULL) {
-            Ns_Set *form = Ns_ConnGetQuery(conn);
+            Ns_Set *form = Ns_ConnGetQuery(NULL, conn, NULL, NULL); /* ignoring encoding errors */
 
             if (form != NULL) {
                 RETURN_LONG(Ns_SetIFind(form, name) > -1);
@@ -1000,7 +1000,7 @@ PHP_FUNCTION(ns_queryget)
         Ns_Conn  *conn = Ns_GetConn();
 
         if (conn != NULL) {
-            Ns_Set *form = Ns_ConnGetQuery(conn);
+            Ns_Set *form = Ns_ConnGetQuery(NULL, conn, NULL, NULL); /* ignoring encoding errors */
 
             if (form != NULL) {
                 const char *value = Ns_SetIGet(form, name);
@@ -1019,7 +1019,7 @@ PHP_FUNCTION(ns_querygetall)
     Ns_Conn *conn = Ns_GetConn();
 
     if (conn != NULL) {
-        Ns_Set *form = Ns_ConnGetQuery(conn);
+        Ns_Set *form = Ns_ConnGetQuery(NULL, conn, NULL, NULL); /* ignoring encoding errors */
 
         if (form != NULL) {
             size_t i;
