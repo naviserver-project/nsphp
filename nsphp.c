@@ -629,7 +629,7 @@ PHP_FUNCTION(ns_info)
     const char *name;
     uint32_t    num_args = ZEND_NUM_ARGS();
     size_t      nlen;
-    Ns_DString  ds;
+    Tcl_DString ds;
 
     static const char *cmds[] = {
         "address", "boottime", "builddate", "threads",
@@ -658,7 +658,7 @@ PHP_FUNCTION(ns_info)
         RETURN_FALSE;
     }
 
-    Ns_DStringInit(&ds);
+    Tcl_DStringInit(&ds);
 
     switch(opt) {
     case IAddressIdx:
@@ -742,7 +742,7 @@ PHP_FUNCTION(ns_info)
     }
 
     RETVAL_STRINGL(ds.string, (size_t)ds.length);
-    Ns_DStringFree(&ds);
+    Tcl_DStringFree(&ds);
 }
 
 PHP_FUNCTION(ns_conn)
@@ -907,7 +907,7 @@ PHP_FUNCTION(ns_conn)
     if (result == TCL_OK) {
         RETVAL_STRINGL(ds.string, (size_t)ds.length);
     }
-    Ns_DStringFree(&ds);
+    Tcl_DStringFree(&ds);
 }
 
 PHP_FUNCTION(ns_returnredirect)
@@ -1044,16 +1044,16 @@ PHP_FUNCTION(nsv_get)
     if (num_args != 2 || zend_parse_parameters(num_args, "ss", &aname, &alen, &key, &klen) == FAILURE) {
         RETURN_FALSE;
     } else {
-        Ns_DString     ds;
+        Tcl_DString    ds;
         const Ns_Conn *conn = Ns_GetConn();
 
-        Ns_DStringInit(&ds);
+        Tcl_DStringInit(&ds);
         if (Ns_VarGet(Ns_ConnServer(conn), aname, key, &ds) == NS_OK) {
             RETVAL_STRINGL(ds.string, (size_t)ds.length);
         } else {
             RETURN_FALSE;
         }
-        Ns_DStringFree(&ds);
+        Tcl_DStringFree(&ds);
     }
 }
 
@@ -1242,7 +1242,7 @@ static int php_ns_sapi_header_handler(sapi_header_struct *sapi_header,
 
         case SAPI_HEADER_ADD:
         case SAPI_HEADER_REPLACE:
-            if (strcasecmp(name, "Content-Length") == 0) {
+            if (strcasecmp(name, "content-length") == 0) {
                 Ns_ConnSetLengthHeader(ctx->conn, (size_t)atoll(p), 0);
             } else if (op == SAPI_HEADER_ADD || (strcasecmp(name, "Set-Cookie") == 0)) {
                 Ns_ConnSetHeaders(ctx->conn, name, p);
@@ -1388,16 +1388,16 @@ static void php_ns_sapi_register_variables(zval *track_vars_array)
 
     } else {
         size_t      i;
-        Ns_DString  ds;
+        Tcl_DString ds;
         char       *p, *value, c;
 
-        Ns_DStringInit(&ds);
+        Tcl_DStringInit(&ds);
         for (i = 0; i < Ns_SetSize(ctx->conn->headers); i++) {
             const char *key = Ns_SetKey(ctx->conn->headers, i);
 
             value = Ns_SetValue(ctx->conn->headers, i);
 
-            Ns_DStringSetLength(&ds, 0);
+            Tcl_DStringSetLength(&ds, 0);
             Ns_DStringPrintf(&ds, "HTTP_%s", key);
             for (p = ds.string + 5; (c = *p); p++) {
                 c = (char)toupper(c);
@@ -1409,18 +1409,18 @@ static void php_ns_sapi_register_variables(zval *track_vars_array)
             ADD_STRING(ds.string, value ? value : "");
         }
 
-        Ns_DStringSetLength(&ds, 0);
+        Tcl_DStringSetLength(&ds, 0);
         Ns_DStringPrintf(&ds, "%s/%s", Ns_InfoServerName(), Ns_InfoServerVersion());
         ADD_STRING("SERVER_SOFTWARE", ds.string);
 
-        Ns_DStringSetLength(&ds, 0);
+        Tcl_DStringSetLength(&ds, 0);
         Ns_DStringPrintf(&ds, "HTTP/%1.1f", ctx->conn->request.version);
         ADD_STRING("SERVER_PROTOCOL", ds.string);
 
         ADD_STRING("REQUEST_METHOD", (char *)ctx->conn->request.method);
 
         if (Ns_ConnHost(ctx->conn)) {
-            Ns_DStringSetLength(&ds, 0);
+            Tcl_DStringSetLength(&ds, 0);
             value = Ns_ConnLocationAppend(ctx->conn, &ds);
             /*
              * Strip protocol and port from the name
@@ -1440,23 +1440,23 @@ static void php_ns_sapi_register_variables(zval *track_vars_array)
         ADD_STRING("SERVER_BUILDDATE", (char *)Ns_InfoBuildDate());
         ADD_STRING("REMOTE_ADDR", (char *)Ns_ConnPeerAddr(ctx->conn));
 
-        Ns_DStringSetLength(&ds, 0);
+        Tcl_DStringSetLength(&ds, 0);
         Ns_DStringPrintf(&ds, "%lu", Ns_InfoBootTime());
         ADD_STRING("SERVER_BOOTTIME", ds.string);
 
-        Ns_DStringSetLength(&ds, 0);
+        Tcl_DStringSetLength(&ds, 0);
         Ns_DStringPrintf(&ds, "%d", Ns_ConnPeerPort(ctx->conn));
         ADD_STRING("REMOTE_PORT", ds.string);
 
-        Ns_DStringSetLength(&ds, 0);
+        Tcl_DStringSetLength(&ds, 0);
         Ns_DStringPrintf(&ds, "%hu", Ns_ConnPort(ctx->conn));
         ADD_STRING("SERVER_PORT", ds.string);
 
-        Ns_DStringSetLength(&ds, 0);
+        Tcl_DStringSetLength(&ds, 0);
         Ns_DStringPrintf(&ds, "%" PRIuz, Ns_ConnContentLength(ctx->conn));
         ADD_STRING("CONTENT_LENGTH", ds.string);
 
-        Ns_DStringSetLength(&ds, 0);
+        Tcl_DStringSetLength(&ds, 0);
         Ns_DStringPrintf(&ds, "%s", SG(request_info).request_uri);
         if (ctx->conn->request.query) {
             Ns_DStringPrintf(&ds, "?%s", ctx->conn->request.query);
@@ -1469,10 +1469,10 @@ static void php_ns_sapi_register_variables(zval *track_vars_array)
         ADD_STRING("SCRIPT_FILENAME", SG(request_info).path_translated);
         ADD_STRING("GATEWAY_INTERFACE", "CGI/1.1");
 
-        Ns_DStringSetLength(&ds, 0);
+        Tcl_DStringSetLength(&ds, 0);
         ADD_STRING("DOCUMENT_ROOT", Ns_PagePath(&ds, Ns_ConnServer(ctx->conn), (char *)0));
 
-        Ns_DStringFree(&ds);
+        Tcl_DStringFree(&ds);
     }
 }
 
@@ -1491,7 +1491,7 @@ static int php_ns_sapi_startup(sapi_module_struct *sapi_module_ptr)
 
 static int php_ns_sapi_request_handler(const void *UNUSED(context), Ns_Conn *conn)
 {
-    Ns_DString       ds;
+    Tcl_DString      ds;
     Ns_ReturnCode    status;
     ns_context       ctx;
     zend_file_handle file_handle;
@@ -1505,7 +1505,7 @@ static int php_ns_sapi_request_handler(const void *UNUSED(context), Ns_Conn *con
         Ns_Log(Notice, "nsphp: refresh tsrm_ls_cache");
     }
 
-    Ns_DStringInit(&ds);
+    Tcl_DStringInit(&ds);
     status = Ns_UrlToFile(&ds, Ns_ConnServer(conn), conn->request.url);
     if (status != NS_OK) {
         Ns_Log(Warning, "nsphp: trying to access non-existing PHP file via url: '%s'", conn->request.url);
@@ -1521,7 +1521,7 @@ static int php_ns_sapi_request_handler(const void *UNUSED(context), Ns_Conn *con
     SG(request_info).request_method = conn->request.method;
     SG(request_info).proto_num = conn->request.version > 1.0 ? 1001 : 1000;
     SG(request_info).content_length = (zend_long)Ns_ConnContentLength(conn);
-    SG(request_info).content_type = Ns_SetIGet(conn->headers, "Content-Type");
+    SG(request_info).content_type = Ns_SetIGet(conn->headers, "content-type");
     SG(request_info).auth_user = STRDUP(Ns_ConnAuthUser(conn));
     SG(request_info).auth_password = STRDUP(Ns_ConnAuthPasswd(conn));
     SG(sapi_headers).http_response_code = 200;
@@ -1548,7 +1548,7 @@ static int php_ns_sapi_request_handler(const void *UNUSED(context), Ns_Conn *con
         Ns_ConnWriteData(conn, NULL, 0, 0);
     }
 
-    Ns_DStringFree(&ds);
+    Tcl_DStringFree(&ds);
     return NS_OK;
 }
 

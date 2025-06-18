@@ -1,3 +1,25 @@
+commit fd8db9750900cc45a6344ebf80b69b40b8b203a9
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2022-09-28
+
+    updated changelog and improve spelling
+
+M	nsphp.c
+
+commit eadbaa23c72500debbc38e058fe59aaaa1527d43
+Author: Gustaf Neumann <neumann@wu-wien.ac.at>
+Date:   2022-09-28
+
+    Adjust to API change of Ns_ConnGetQuery() in NaviServer 4.99.24
+    
+    NaviServer 4.99.24 added handling of fallback resources, which are also
+    relevant for query parameters. So, Ns_ConnGetQuery() was changed. The
+    change just provides compilation and backwards compatibility.
+    
+    Many thanks to Joe Oldak for the patch.
+
+M	nsphp.c
+
 commit 916850ce81436fb6ff962fa30a1ecf0b1213b0ae
 Author: Gustaf Neumann <neumann@wu-wien.ac.at>
 Date:   2021-07-23
